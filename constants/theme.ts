@@ -1,0 +1,62 @@
+export const theme = {
+    colors: {
+        background: "#f5f5f5",
+        foreground: "#171717",
+    },
+    fonts: {
+        sans: "var(--font-pretendard)",
+        mono: "var(--font-pretendard)",
+    },
+    breakpoints: {
+        mobile: "768px",
+        tablet: "1024px",
+        desktop: "1280px",
+    },
+    fontSizes: {
+        xs: "0.75rem",
+        sm: "0.875rem",
+        base: "1rem",
+        lg: "1.125rem",
+        xl: "1.25rem",
+        "2xl": "1.5rem",
+    },
+    fontWeights: {
+        light: 300,
+        normal: 400,
+        medium: 500,
+        bold: 700,
+    },
+    lineHeights: {
+        xs: "1rem",
+        sm: "1.25rem",
+        base: "1.5rem",
+        lg: "1.75rem",
+        xl: "2rem",
+        "2xl": "2.5rem",
+    },
+    radii: {
+        xs: "0.125rem",
+        sm: "0.25rem",
+        base: "0.5rem",
+        lg: "1rem",
+        xl: "1.5rem",
+        "2xl": "2rem",
+    },
+    shadows: {
+        xs: "0 0 0 1px rgba(0, 0, 0, 0.05)",
+        sm: "0 1px 2px 0 rgba(0, 0, 0, 0.05)",
+        base: "0 1px 3px 0 rgba(0, 0, 0, 0.1)",
+        lg: "0 10px 15px -3px rgba(0, 0, 0, 0.1)",
+        xl: "0 20px 25px -5px rgba(0, 0, 0, 0.1)",
+        "2xl": "0 25px 50px -12px rgba(0, 0, 0, 0.25)",
+    },
+    zIndices: {
+        auto: "auto",
+        xs: 10,
+        sm: 20,
+        base: 30,
+        lg: 40,
+        xl: 50,
+        "2xl": 60,
+    },
+}
