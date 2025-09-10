@@ -159,21 +159,17 @@ const Home = () => {
           </div>
           <div className="flex justify-center">
               <ul className="space-y-4">
-                <li className={`flex items-center transition-all duration-700 ${isProblemSolutionVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`} style={{transitionDelay: isProblemSolutionVisible ? '0.4s' : '0s'}}>
-                  <div className="w-2 h-2 bg-orange-500 rounded-full mt-2 mr-4 flex-shrink-0"></div>
-                  <span className="text-gray-700 leading-relaxed">AI 기반 자동 마케팅 전략</span>
+                <li className={`flex justify-center transition-all duration-700 ${isProblemSolutionVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`} style={{transitionDelay: isProblemSolutionVisible ? '0.4s' : '0s'}}>
+                  <span className="text-gray-700 text-center">AI 기반 자동 마케팅 전략</span>
                 </li>
-                <li className={`flex items-center transition-all duration-700 ${isProblemSolutionVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`} style={{transitionDelay: isProblemSolutionVisible ? '0.6s' : '0s'}}>
-                  <div className="w-2 h-2 bg-orange-500 rounded-full mt-2 mr-4 flex-shrink-0"></div>
-                  <span className="text-gray-700 leading-relaxed">통합 SNS 관리 대시보드</span>
+                <li className={`flex justify-center transition-all duration-700 ${isProblemSolutionVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`} style={{transitionDelay: isProblemSolutionVisible ? '0.6s' : '0s'}}>
+                  <span className="text-gray-700 text-center">통합 SNS 관리 대시보드</span>
                 </li>
-                <li className={`flex items-center transition-all duration-700 ${isProblemSolutionVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`} style={{transitionDelay: isProblemSolutionVisible ? '0.8s' : '0s'}}>
-                  <div className="w-2 h-2 bg-orange-500 rounded-full mt-2 mr-4 flex-shrink-0"></div>
-                  <span className="text-gray-700 leading-relaxed">데이터 기반 성과 분석</span>
+                <li className={`flex justify-center transition-all duration-700 ${isProblemSolutionVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`} style={{transitionDelay: isProblemSolutionVisible ? '0.8s' : '0s'}}>
+                  <span className="text-gray-700 text-center">데이터 기반 성과 분석</span>
                 </li>
-                <li className={`flex items-center transition-all duration-700 ${isProblemSolutionVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`} style={{transitionDelay: isProblemSolutionVisible ? '1.0s' : '0s'}}>
-                  <div className="w-2 h-2 bg-orange-500 rounded-full mt-2 mr-4 flex-shrink-0"></div>
-                  <span className="text-gray-700 leading-relaxed">전문 마케터 수준의 브랜딩</span>
+                <li className={`flex justify-center transition-all duration-700 ${isProblemSolutionVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`} style={{transitionDelay: isProblemSolutionVisible ? '1.0s' : '0s'}}>
+                  <span className="text-gray-700 text-center">전문 마케터 수준의 브랜딩</span>
                 </li>
               </ul>
           </div>

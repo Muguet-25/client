@@ -36,9 +36,6 @@ const Navigation = ({ activeSection, onSectionClick }: NavigationProps) => {
         </div>
         
         <div className="flex items-center space-x-4">
-          <button className="w-6 h-6 text-white/80 hover:text-white transition-colors">
-            <Search className="w-6 h-6" />
-          </button>
           <button 
             className="md:hidden text-white/80 hover:text-white transition-colors"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
