@@ -26,7 +26,7 @@ const Navigation = ({ activeSection, onSectionClick }: NavigationProps) => {
               onClick={() => onSectionClick(item.href)} 
               className={`transition-colors ${
                 activeSection === item.href 
-                  ? 'text-white border-b-2 border-green-500 pb-1' 
+                  ? 'text-white border-b-2 border-orange-500 pb-1' 
                   : 'text-white/80 hover:text-white'
               }`}
             >

@@ -30,11 +30,15 @@ const FAQAccordion = ({ faqData }: FAQAccordionProps) => {
               <ChevronDown className="w-6 h-6 text-gray-500 flex-shrink-0" />
             )}
           </button>
-          {openFaqIndex === index && (
+          <div 
+            className={`overflow-hidden transition-all duration-300 ease-in-out ${
+              openFaqIndex === index ? 'max-h-96 opacity-100' : 'max-h-0 opacity-0'
+            }`}
+          >
             <div className="px-6 pb-6">
-              <p className="text-gray-600 leading-relaxed">{faq.answer}</p>
+              <p className="text-gray-600 mt-2">{faq.answer}</p>
             </div>
-          )}
+          </div>
         </div>
       ))}
     </div>
