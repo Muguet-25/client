@@ -62,19 +62,19 @@ const Home = () => {
 
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
-              <button
-                className="w-full sm:w-auto min-h-[56px] text-white text-lg font-semibold bg-orange-500 hover:bg-orange-600 active:bg-orange-700 px-12 py-4 rounded-full transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-orange-300 shadow-2xl hover:shadow-orange-500/25"
-                onClick={() => router.push("/signup")}
-              >
-                지금 시작하기
-              </button>
-              <button
-                className="w-full sm:w-auto min-h-[56px] text-white text-lg font-semibold bg-transparent border-2 border-white/60 hover:border-white hover:bg-white/10 px-12 py-4 rounded-full transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-white/30"
-                onClick={() => router.push("/learn")}
-              >
-                더 알아보기
-              </button>
-            </div>
+  <button
+    className="w-full sm:w-auto min-h-[56px] text-white text-lg font-semibold bg-orange-500 hover:bg-orange-600 active:bg-orange-700 px-12 py-4 rounded-full transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-orange-300 shadow-2xl hover:shadow-orange-500/25"
+    onClick={() => router.push("/auth/signup")}
+  >
+    지금 시작하기
+  </button>
+  <button
+    className="w-full sm:w-auto min-h-[56px] text-white text-lg font-semibold bg-transparent border-2 border-white/60 hover:border-white hover:bg-white/10 px-12 py-4 rounded-full transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-white/30"
+    onClick={() => router.push("/auth/signup")}
+  >
+    회원가입
+  </button>
+</div>
           </div>
         </div>
 
