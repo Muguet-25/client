@@ -12,6 +12,7 @@ import FAQAccordion from "@/components/sections/FAQAccordion";
 
 // Hooks
 import { useScrollSpy } from "@/hooks/useScrollSpy";
+import { useIntersectionObserver } from "@/hooks/useIntersectionObserver";
 
 // Constants
 import { navData, popularFeatures, socialProofData, faqData } from "@/constants/navigation";
@@ -24,6 +25,12 @@ const Home = () => {
   const router = useRouter();
   const sections = ['hero', 'about', 'features', 'pricing', 'contact'];
   const { activeSection, isNavVisible } = useScrollSpy(sections);
+  
+  // Problem-Solution 섹션 스크롤 트리거
+  const { ref: problemSolutionRef, isIntersecting: isProblemSolutionVisible } = useIntersectionObserver({
+    threshold: 0.3,
+    rootMargin: '0px 0px -100px 0px'
+  });
 
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
@@ -104,7 +111,7 @@ const Home = () => {
       </section>
 
       {/* Problem/Solution Section */}
-      <section id="about" className="py-16 sm:py-20 px-4 sm:px-8 lg:px-16 bg-gray-50">
+      <section ref={problemSolutionRef} id="about" className="py-16 sm:py-20 px-4 sm:px-8 lg:px-16 bg-gray-50">
         <div className="max-w-6xl mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 mb-6 leading-tight">
@@ -114,59 +121,25 @@ const Home = () => {
               크리에이터는 콘텐츠 제작에만 집중해야 합니다. 마케팅은 Muguet가 대신 해드릴게요.
             </p>
           </div>
-          <div className="grid lg:grid-cols-2 gap-8 lg:gap-16 items-start">
-            <div className="bg-white rounded-2xl p-8 shadow-sm border border-red-100">
-              <div className="flex items-center mb-6">
-                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mr-4">
-                  <span className="text-2xl">❌</span>
-                </div>
-                <h3 className="text-2xl font-bold text-red-700">기존 문제점</h3>
-              </div>
+          <div className="flex justify-center">
               <ul className="space-y-4">
-                <li className="flex items-start">
-                  <div className="w-2 h-2 bg-red-500 rounded-full mt-2 mr-4 flex-shrink-0"></div>
-                  <span className="text-gray-700 leading-relaxed">마케팅에 시간을 너무 많이 소모</span>
-                </li>
-                <li className="flex items-start">
-                  <div className="w-2 h-2 bg-red-500 rounded-full mt-2 mr-4 flex-shrink-0"></div>
-                  <span className="text-gray-700 leading-relaxed">복잡한 SNS 관리와 분석</span>
-                </li>
-                <li className="flex items-start">
-                  <div className="w-2 h-2 bg-red-500 rounded-full mt-2 mr-4 flex-shrink-0"></div>
-                  <span className="text-gray-700 leading-relaxed">효과적인 광고 전략 수립의 어려움</span>
-                </li>
-                <li className="flex items-start">
-                  <div className="w-2 h-2 bg-red-500 rounded-full mt-2 mr-4 flex-shrink-0"></div>
-                  <span className="text-gray-700 leading-relaxed">개인 브랜딩의 전문성 부족</span>
-                </li>
-              </ul>
-            </div>
-            <div className="bg-white rounded-2xl p-8 shadow-sm border border-green-100">
-              <div className="flex items-center mb-6">
-                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mr-4">
-                  <span className="text-2xl">✅</span>
-                </div>
-                <h3 className="text-2xl font-bold text-green-700">Muguet 솔루션</h3>
-              </div>
-              <ul className="space-y-4">
-                <li className="flex items-start">
-                  <div className="w-2 h-2 bg-green-500 rounded-full mt-2 mr-4 flex-shrink-0"></div>
+                <li className={`flex items-center transition-all duration-700 ${isProblemSolutionVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`} style={{transitionDelay: isProblemSolutionVisible ? '0.2s' : '0s'}}>
+                  <div className="w-2 h-2 bg-orange-500 rounded-full mt-2 mr-4 flex-shrink-0"></div>
                   <span className="text-gray-700 leading-relaxed">AI 기반 자동 마케팅 전략</span>
                 </li>
-                <li className="flex items-start">
-                  <div className="w-2 h-2 bg-green-500 rounded-full mt-2 mr-4 flex-shrink-0"></div>
+                <li className={`flex items-center transition-all duration-700 ${isProblemSolutionVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`} style={{transitionDelay: isProblemSolutionVisible ? '0.4s' : '0s'}}>
+                  <div className="w-2 h-2 bg-orange-500 rounded-full mt-2 mr-4 flex-shrink-0"></div>
                   <span className="text-gray-700 leading-relaxed">통합 SNS 관리 대시보드</span>
                 </li>
-                <li className="flex items-start">
-                  <div className="w-2 h-2 bg-green-500 rounded-full mt-2 mr-4 flex-shrink-0"></div>
+                <li className={`flex items-center transition-all duration-700 ${isProblemSolutionVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`} style={{transitionDelay: isProblemSolutionVisible ? '0.6s' : '0s'}}>
+                  <div className="w-2 h-2 bg-orange-500 rounded-full mt-2 mr-4 flex-shrink-0"></div>
                   <span className="text-gray-700 leading-relaxed">데이터 기반 성과 분석</span>
                 </li>
-                <li className="flex items-start">
-                  <div className="w-2 h-2 bg-green-500 rounded-full mt-2 mr-4 flex-shrink-0"></div>
+                <li className={`flex items-center transition-all duration-700 ${isProblemSolutionVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`} style={{transitionDelay: isProblemSolutionVisible ? '0.8s' : '0s'}}>
+                  <div className="w-2 h-2 bg-orange-500 rounded-full mt-2 mr-4 flex-shrink-0"></div>
                   <span className="text-gray-700 leading-relaxed">전문 마케터 수준의 브랜딩</span>
                 </li>
               </ul>
-            </div>
           </div>
         </div>
       </section>
