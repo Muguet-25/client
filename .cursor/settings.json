@@ -1,0 +1,32 @@
+{
+  "cursor.ai.enabled": true,
+  "cursor.ai.model": "gpt-4",
+  "cursor.ai.temperature": 0.7,
+  "cursor.ai.maxTokens": 4000,
+  "cursor.ai.systemPrompt": "You are a senior React/Next.js developer working on a creator marketing platform called Muguet. Follow TypeScript best practices, use Tailwind CSS for styling, and maintain clean, readable code.",
+  "cursor.ai.contextFiles": [
+    "package.json",
+    "tsconfig.json",
+    "tailwind.config.ts",
+    "next.config.ts"
+  ],
+  "cursor.ai.ignorePatterns": [
+    "node_modules/**",
+    ".next/**",
+    "dist/**",
+    "build/**",
+    "*.log"
+  ],
+  "cursor.ai.suggestions": {
+    "enabled": true,
+    "autoImport": true,
+    "typeHints": true,
+    "inlineSuggestions": true
+  },
+  "cursor.ai.codeActions": {
+    "enabled": true,
+    "refactor": true,
+    "optimize": true,
+    "document": true
+  }
+}
