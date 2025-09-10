@@ -1,8 +1,46 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f5f5f5;
+  /* Light theme colors */
+  --background: #fafafa;
   --foreground: #171717;
+  
+  /* Primary colors */
+  --primary-50: #f0fdf4;
+  --primary-100: #dcfce7;
+  --primary-200: #bbf7d0;
+  --primary-300: #86efac;
+  --primary-400: #4ade80;
+  --primary-500: #22c55e;
+  --primary-600: #16a34a;
+  --primary-700: #15803d;
+  --primary-800: #166534;
+  --primary-900: #14532d;
+  
+  /* Secondary colors */
+  --secondary-50: #fff7ed;
+  --secondary-100: #ffedd5;
+  --secondary-200: #fed7aa;
+  --secondary-300: #fdba74;
+  --secondary-400: #fb923c;
+  --secondary-500: #f97316;
+  --secondary-600: #ea580c;
+  --secondary-700: #c2410c;
+  --secondary-800: #9a3412;
+  --secondary-900: #7c2d12;
+  
+  /* Dark theme colors */
+  --dark-50: #f8fafc;
+  --dark-100: #f1f5f9;
+  --dark-200: #e2e8f0;
+  --dark-300: #cbd5e1;
+  --dark-400: #94a3b8;
+  --dark-500: #64748b;
+  --dark-600: #475569;
+  --dark-700: #334155;
+  --dark-800: #1e293b;
+  --dark-900: #0f172a;
+  --dark-950: #020617;
 }
 
 @theme inline {
@@ -14,8 +52,8 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #171717;
-    --foreground: #ededed;
+    --background: #0f172a;
+    --foreground: #f8fafc;
   }
 }
 

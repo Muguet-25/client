@@ -63,7 +63,7 @@ const Home = () => {
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
   <button
-    className="w-full sm:w-auto min-h-[56px] text-white text-lg font-semibold bg-orange-500 hover:bg-orange-600 active:bg-orange-700 px-12 py-4 rounded-full transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-orange-300 shadow-2xl hover:shadow-orange-500/25"
+    className="w-full sm:w-auto min-h-[56px] text-white text-lg font-semibold bg-green-600 hover:bg-green-700 active:bg-green-800 px-12 py-4 rounded-full transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-green-300 shadow-2xl hover:shadow-green-500/25"
     onClick={() => router.push("/auth/signup")}
   >
     지금 시작하기
@@ -72,7 +72,7 @@ const Home = () => {
     className="w-full sm:w-auto min-h-[56px] text-white text-lg font-semibold bg-transparent border-2 border-white/60 hover:border-white hover:bg-white/10 px-12 py-4 rounded-full transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-white/30"
     onClick={() => router.push("/auth/signup")}
   >
-    회원가입
+    더 알아보기
   </button>
 </div>
           </div>
@@ -94,7 +94,7 @@ const Home = () => {
               >
                 <h3 className="text-white text-lg font-semibold mb-2">{card.title}</h3>
                 <p className="text-white/70 text-sm mb-4">{card.description}</p>
-                <span className="text-orange-400 text-sm font-medium hover:text-orange-300 transition-colors">
+                <span className="text-green-400 text-sm font-medium hover:text-green-300 transition-colors">
                   자세히 보기 →
                 </span>
               </button>
@@ -175,7 +175,7 @@ const Home = () => {
       <section id="features" className="py-20 px-4 sm:px-8 lg:px-16 bg-gray-900">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-16">
-            <p className="text-orange-400 text-sm font-medium tracking-wider uppercase mb-4">인기 기능</p>
+            <p className="text-green-400 text-sm font-medium tracking-wider uppercase mb-4">인기 기능</p>
             <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">
               POPULAR FEATURES
             </h2>
@@ -203,7 +203,7 @@ const Home = () => {
           <div className="grid md:grid-cols-4 gap-8 mb-16">
             {socialProofData.map((item, index) => (
               <div key={index}>
-                <div className="text-4xl font-bold text-orange-500 mb-2">{item.value}</div>
+                <div className="text-4xl font-bold text-green-500 mb-2">{item.value}</div>
                 <div className="text-gray-400">{item.label}</div>
               </div>
             ))}
@@ -292,7 +292,7 @@ const Home = () => {
 
       {/* Inspiration & Video Section */}
       <section className="relative py-20 px-4 sm:px-8 lg:px-16 bg-gradient-to-br from-gray-900 via-gray-800 to-black overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-orange-500/10 via-transparent to-orange-600/5"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-green-500/10 via-transparent to-green-600/5"></div>
         <div className="relative z-10 max-w-6xl mx-auto text-center">
           <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-8 leading-tight">
             CREATE AND
@@ -315,9 +315,9 @@ const Home = () => {
           {/* Related Video Thumbnails */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-4xl mx-auto">
             {videoThumbnails.map((video, index) => (
-              <div key={index} className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-gray-800 to-gray-900 hover:from-orange-500/20 hover:to-orange-600/20 transition-all duration-300 border border-gray-700 hover:border-orange-500/50">
+              <div key={index} className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-gray-800 to-gray-900 hover:from-green-500/20 hover:to-green-600/20 transition-all duration-300 border border-gray-700 hover:border-green-500/50">
                 <div className={`aspect-video bg-gradient-to-br ${video.gradient} flex items-center justify-center`}>
-                  <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center group-hover:bg-orange-500/30 transition-colors duration-300">
+                  <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center group-hover:bg-green-500/30 transition-colors duration-300">
                     <div className="w-0 h-0 border-l-[8px] border-l-white border-y-[6px] border-y-transparent ml-1"></div>
                   </div>
                 </div>

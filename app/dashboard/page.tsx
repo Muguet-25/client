@@ -25,7 +25,7 @@ export default function DashboardPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-orange-500/30 border-t-orange-500 rounded-full animate-spin"></div>
+        <div className="w-8 h-8 border-2 border-green-500/30 border-t-green-500 rounded-full animate-spin"></div>
       </div>
     );
   }
@@ -81,7 +81,7 @@ export default function DashboardPage() {
 
           <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
             <div className="flex items-center">
-              <User className="w-8 h-8 text-blue-500" />
+              <User className="w-8 h-8 text-green-500" />
               <div className="ml-4">
                 <p className="text-sm text-gray-400">팔로워</p>
                 <p className="text-2xl font-bold text-white">1,234</p>
@@ -91,7 +91,7 @@ export default function DashboardPage() {
 
           <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
             <div className="flex items-center">
-              <Calendar className="w-8 h-8 text-green-500" />
+              <Calendar className="w-8 h-8 text-green-400" />
               <div className="ml-4">
                 <p className="text-sm text-gray-400">이번 달 포스트</p>
                 <p className="text-2xl font-bold text-white">24</p>
@@ -101,7 +101,7 @@ export default function DashboardPage() {
 
           <div className="bg-white/10 backdrop-blur-sm rounded-xl p-6 border border-white/20">
             <div className="flex items-center">
-              <Mail className="w-8 h-8 text-purple-500" />
+              <Mail className="w-8 h-8 text-blue-500" />
               <div className="ml-4">
                 <p className="text-sm text-gray-400">참여율</p>
                 <p className="text-2xl font-bold text-white">8.5%</p>
@@ -120,11 +120,11 @@ export default function DashboardPage() {
                 <span className="text-gray-300">새로운 포스트가 업로드되었습니다</span>
               </div>
               <div className="flex items-center space-x-3">
-                <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                 <span className="text-gray-300">팔로워가 10명 증가했습니다</span>
               </div>
               <div className="flex items-center space-x-3">
-                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                <div className="w-2 h-2 bg-green-400 rounded-full"></div>
                 <span className="text-gray-300">새로운 댓글이 달렸습니다</span>
               </div>
             </div>
@@ -136,10 +136,10 @@ export default function DashboardPage() {
               <button className="w-full bg-orange-500 hover:bg-orange-600 text-white font-semibold py-3 px-4 rounded-lg transition-colors">
                 새 포스트 작성
               </button>
-              <button className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 px-4 rounded-lg transition-colors">
+              <button className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-4 rounded-lg transition-colors">
                 분석 보고서 보기
               </button>
-              <button className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 px-4 rounded-lg transition-colors">
+              <button className="w-full bg-green-400 hover:bg-green-500 text-white font-semibold py-3 px-4 rounded-lg transition-colors">
                 캠페인 설정
               </button>
             </div>

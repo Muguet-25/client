@@ -24,7 +24,7 @@ const SideIndicators = ({ activeSection, onSectionClick }: SideIndicatorsProps) 
             }`}>
               {String(index + 1).padStart(2, '0')}
             </span>
-            {activeSection === item.href && <div className="w-8 h-0.5 bg-orange-500 ml-2"></div>}
+            {activeSection === item.href && <div className="w-8 h-0.5 bg-green-500 ml-2"></div>}
           </button>
         ))}
       </div>

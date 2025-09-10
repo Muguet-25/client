@@ -27,7 +27,7 @@ const Navigation = ({ activeSection, onSectionClick }: NavigationProps) => {
               onClick={() => onSectionClick(item.href)} 
               className={`transition-colors ${
                 activeSection === item.href 
-                  ? 'text-white border-b-2 border-orange-500 pb-1' 
+                  ? 'text-white border-b-2 border-green-500 pb-1' 
                   : 'text-white/80 hover:text-white'
               }`}
             >
@@ -62,7 +62,7 @@ const Navigation = ({ activeSection, onSectionClick }: NavigationProps) => {
                 }} 
                 className={`block w-full text-left transition-colors py-2 ${
                   activeSection === item.href 
-                    ? 'text-white border-l-4 border-orange-500 pl-4' 
+                    ? 'text-white border-l-4 border-green-500 pl-4' 
                     : 'text-white/80 hover:text-white'
                 }`}
               >
