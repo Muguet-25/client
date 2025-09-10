@@ -1,0 +1,49 @@
+{
+  "name": "Muguet AI Assistant",
+  "version": "1.0.0",
+  "description": "AI assistant for Muguet creator marketing platform",
+  "capabilities": [
+    "code_generation",
+    "code_review",
+    "bug_fixing",
+    "refactoring",
+    "documentation",
+    "testing",
+    "optimization"
+  ],
+  "context": {
+    "project_type": "nextjs",
+    "framework": "react",
+    "language": "typescript",
+    "styling": "tailwindcss",
+    "database": "supabase",
+    "deployment": "vercel"
+  },
+  "preferences": {
+    "code_style": "functional",
+    "component_pattern": "hooks",
+    "state_management": "zustand",
+    "validation": "zod",
+    "icons": "lucide-react",
+    "theme": "dark",
+    "design": "minimal"
+  },
+  "rules": [
+    "Always use TypeScript strict mode",
+    "Follow React best practices",
+    "Use Tailwind CSS for styling",
+    "Maintain accessibility standards",
+    "Write clean, readable code",
+    "Add proper error handling",
+    "Include loading states",
+    "Follow the project's naming conventions"
+  ],
+  "exclusions": [
+    "node_modules/**",
+    ".next/**",
+    "dist/**",
+    "build/**",
+    "*.log",
+    ".env*"
+  ]
+}
