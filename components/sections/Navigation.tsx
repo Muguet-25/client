@@ -16,7 +16,6 @@ const Navigation = ({ activeSection, onSectionClick }: NavigationProps) => {
     <>
       <nav className="fixed top-0 left-0 w-full z-20 flex items-center justify-between px-6 sm:px-8 lg:px-16 py-6 bg-black/20 backdrop-blur-sm">
         <div className="flex items-center space-x-2">
-          <div className="w-8 h-8 bg-orange-500 rounded-full"></div>
           <span className="text-white text-xl font-bold tracking-wider">MUGUET</span>
         </div>
         
