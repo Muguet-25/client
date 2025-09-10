@@ -71,7 +71,7 @@ export default function SignupPage() {
           <div className="text-center">
             <h1 className="text-6xl font-bold text-white mb-4 tracking-wider">
               MUGUET
-              <span className="text-green-400 ml-2">●</span>
+              <span className="text-orange-500 ml-2">●</span>
             </h1>
             <p className="text-white/80 text-lg">
               크리에이터를 위한 마케팅 플랫폼
@@ -87,7 +87,7 @@ export default function SignupPage() {
             <h2 className="text-3xl font-bold text-white uppercase tracking-wider mb-2">
               SIGN UP
             </h2>
-            <div className="w-12 h-0.5 bg-green-400 mb-6"></div>
+            <div className="w-12 h-0.5 bg-orange-500 mb-6"></div>
             <p className="text-white/70 text-sm">
               이메일과 비밀번호를 입력하여 계정을 만드세요
             </p>
@@ -115,7 +115,7 @@ export default function SignupPage() {
                   required
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full pl-10 pr-4 py-3 bg-transparent border border-white/30 rounded-none text-white placeholder-white/60 focus:outline-none focus:border-green-400 focus:ring-0 transition-colors"
+                  className="w-full pl-10 pr-4 py-3 bg-transparent border border-white/30 rounded-none text-white placeholder-white/60 focus:outline-none focus:border-orange-400 focus:ring-0 transition-colors"
                   placeholder="이메일"
                 />
               </div>
@@ -134,7 +134,7 @@ export default function SignupPage() {
                   required
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="w-full pl-10 pr-12 py-3 bg-transparent border border-white/30 rounded-none text-white placeholder-white/60 focus:outline-none focus:border-green-400 focus:ring-0 transition-colors"
+                  className="w-full pl-10 pr-12 py-3 bg-transparent border border-white/30 rounded-none text-white placeholder-white/60 focus:outline-none focus:border-orange-400 focus:ring-0 transition-colors"
                   placeholder="비밀번호"
                 />
                 <button
@@ -160,12 +160,12 @@ export default function SignupPage() {
                         className={`h-1 flex-1 rounded ${
                           level <= passwordStrength
                             ? passwordStrength === 1
-                              ? 'bg-red-500'
+                              ? 'bg-orange-500'
                               : passwordStrength === 2
-                              ? 'bg-yellow-500'
+                              ? 'bg-orange-500'
                               : passwordStrength === 3
-                              ? 'bg-blue-500'
-                              : 'bg-green-500'
+                              ? 'bg-orange-500'
+                              : 'bg-orange-500'
                             : 'bg-white/20'
                         }`}
                       />
@@ -195,7 +195,7 @@ export default function SignupPage() {
                   required
                   value={formData.confirmPassword}
                   onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                  className="w-full pl-10 pr-12 py-3 bg-transparent border border-white/30 rounded-none text-white placeholder-white/60 focus:outline-none focus:border-green-400 focus:ring-0 transition-colors"
+                  className="w-full pl-10 pr-12 py-3 bg-transparent border border-white/30 rounded-none text-white placeholder-white/60 focus:outline-none focus:border-orange-400 focus:ring-0 transition-colors"
                   placeholder="비밀번호 확인"
                 />
                 <button
@@ -216,8 +216,8 @@ export default function SignupPage() {
                 <div className="mt-2 flex items-center">
                   {formData.password === formData.confirmPassword ? (
                     <>
-                      <CheckCircle className="w-4 h-4 text-green-400 mr-2" />
-                      <span className="text-green-400 text-sm">비밀번호가 일치합니다</span>
+                      <CheckCircle className="w-4 h-4 text-orange-400 mr-2" />
+                      <span className="text-orange-400 text-sm">비밀번호가 일치합니다</span>
                     </>
                   ) : (
                     <>
@@ -232,7 +232,7 @@ export default function SignupPage() {
             <button
               type="submit"
               disabled={isLoading || passwordStrength < 4 || formData.password !== formData.confirmPassword}
-              className="w-full py-3 px-4 border border-white/30 text-white uppercase font-medium hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-2 focus:ring-offset-black disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+              className="w-full py-3 px-4 border border-white/30 text-white uppercase font-medium hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-offset-2 focus:ring-offset-black disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
             >
               {isLoading ? '회원가입 중...' : 'SIGN UP'}
             </button>
@@ -252,7 +252,7 @@ export default function SignupPage() {
               <button
                 onClick={() => handleSnsLogin('google')}
                 disabled={isLoading}
-                className="w-full inline-flex justify-center py-3 px-4 border border-white/30 text-white/70 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-green-400 disabled:opacity-50 transition-all duration-200"
+                className="w-full inline-flex justify-center py-3 px-4 border border-white/30 text-white/70 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-orange-400 disabled:opacity-50 transition-all duration-200"
               >
                 <span className="sr-only">Google로 회원가입</span>
                 <svg className="h-5 w-5" viewBox="0 0 24 24">
@@ -266,7 +266,7 @@ export default function SignupPage() {
               <button
                 onClick={() => handleSnsLogin('kakao')}
                 disabled={isLoading}
-                className="w-full inline-flex justify-center py-3 px-4 border border-white/30 text-white/70 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-green-400 disabled:opacity-50 transition-all duration-200"
+                className="w-full inline-flex justify-center py-3 px-4 border border-white/30 text-white/70 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-orange-400 disabled:opacity-50 transition-all duration-200"
               >
                 <span className="sr-only">카카오로 회원가입</span>
                 <span className="text-yellow-400 font-bold text-lg">K</span>
@@ -275,7 +275,7 @@ export default function SignupPage() {
               <button
                 onClick={() => handleSnsLogin('facebook')}
                 disabled={isLoading}
-                className="w-full inline-flex justify-center py-3 px-4 border border-white/30 text-white/70 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-green-400 disabled:opacity-50 transition-all duration-200"
+                className="w-full inline-flex justify-center py-3 px-4 border border-white/30 text-white/70 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-orange-400 disabled:opacity-50 transition-all duration-200"
               >
                 <span className="sr-only">페이스북으로 회원가입</span>
                 <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 24 24">
@@ -290,7 +290,7 @@ export default function SignupPage() {
               이미 계정이 있으신가요?{' '}
               <button
                 onClick={() => router.push('/auth/login')}
-                className="text-green-400 hover:text-green-300 font-medium transition-colors"
+                className="text-orange-500 hover:text-orange-300 font-medium transition-colors"
               >
                 로그인
               </button>
