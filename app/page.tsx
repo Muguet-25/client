@@ -225,7 +225,7 @@ const Home = () => {
         </div>
       </section>
 
-      {/* How It Works Section */}
+      
       <section ref={stepsRef} className="py-20 px-16 bg-white">
         <div className="max-w-6xl mx-auto">
           <div className={`text-center mb-16 transition-all duration-1000 ${isStepsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
