@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
+import ToastContainer from "@/components/common/ToastContainer";
 
 export const metadata: Metadata = {
   title: "Muguet",
@@ -15,6 +16,7 @@ export default function RootLayout({
     <html lang="ko">
       <body className="w-full h-full">
         {children}
+        <ToastContainer />
       </body>
     </html>
   );

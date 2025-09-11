@@ -99,6 +99,8 @@ client-v2/
 
 - **Bun** 1.0 이상
 - **Node.js** 18.0 이상 (Bun과 함께 사용)
+- **Supabase** 계정 (인증 및 데이터베이스)
+- **Google Cloud Console** 계정 (YouTube API용)
 
 ### 설치 및 실행
 
@@ -113,12 +115,45 @@ client-v2/
    bun install
    ```
 
-3. **개발 서버 실행**
+3. **환경 변수 설정**
+   ```bash
+   cp .env.example .env.local
+   ```
+   
+   `.env.local` 파일에 다음 변수들을 설정하세요:
+   ```env
+   # Supabase 설정
+   NEXT_PUBLIC_SUPABASE_URL=your_supabase_url
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your_supabase_anon_key
+   SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key
+
+   # YouTube API 설정
+   NEXT_PUBLIC_YOUTUBE_CLIENT_ID=your_youtube_client_id
+   YOUTUBE_CLIENT_SECRET=your_youtube_client_secret
+   NEXT_PUBLIC_YOUTUBE_REDIRECT_URI=http://localhost:3000/auth/youtube/callback
+
+   # 기타 설정
+   NEXTAUTH_SECRET=your_nextauth_secret
+   NEXTAUTH_URL=http://localhost:3000
+   ```
+
+4. **Supabase 설정**
+   - [Supabase](https://supabase.com)에서 새 프로젝트 생성
+   - 프로젝트 설정에서 URL과 API 키 복사
+   - 환경 변수에 입력
+
+5. **YouTube API 설정**
+   - [Google Cloud Console](https://console.cloud.google.com)에서 프로젝트 생성
+   - YouTube Data API v3 및 YouTube Analytics API 활성화
+   - OAuth 2.0 클라이언트 ID 생성
+   - 환경 변수에 클라이언트 ID와 시크릿 입력
+
+6. **개발 서버 실행**
    ```bash
    bun dev
    ```
 
-4. **브라우저에서 확인**
+7. **브라우저에서 확인**
    ```
    http://localhost:3000
    ```
