@@ -81,7 +81,7 @@ export default function SignupPage() {
           <div className="text-center">
             <h1 className="text-6xl font-bold text-white mb-4 tracking-wider">
               MUGUET
-              <span className="text-orange-400 ml-2">●</span>
+              <span className="text-orange-500 ml-2">●</span>
             </h1>
             <p className="text-white/80 text-lg">
               크리에이터를 위한 마케팅 플랫폼
@@ -97,7 +97,7 @@ export default function SignupPage() {
             <h2 className="text-3xl font-bold text-white uppercase tracking-wider mb-2">
               SIGN UP
             </h2>
-            <div className="w-12 h-0.5 bg-orange-400 mb-6"></div>
+            <div className="w-12 h-0.5 bg-orange-500 mb-6"></div>
             <p className="text-white/70 text-sm">
               이메일과 비밀번호를 입력하여 계정을 만드세요
             </p>
@@ -125,7 +125,7 @@ export default function SignupPage() {
                   required
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full pl-12 pr-4 py-3 bg-transparent border border-white/30 rounded-none text-white placeholder-white/60 focus:outline-none focus:border-orange-400 focus:ring-0 transition-colors"
+                  className="w-full pl-10 pr-4 py-3 bg-transparent border border-white/30 rounded-none text-white placeholder-white/60 focus:outline-none focus:border-orange-400 focus:ring-0 transition-colors"
                   placeholder="이메일"
                 />
               </div>
@@ -144,7 +144,7 @@ export default function SignupPage() {
                   required
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="w-full pl-12 pr-12 py-3 bg-transparent border border-white/30 rounded-none text-white placeholder-white/60 focus:outline-none focus:border-orange-400 focus:ring-0 transition-colors"
+                  className="w-full pl-10 pr-12 py-3 bg-transparent border border-white/30 rounded-none text-white placeholder-white/60 focus:outline-none focus:border-orange-400 focus:ring-0 transition-colors"
                   placeholder="비밀번호"
                 />
                 <button
@@ -170,12 +170,12 @@ export default function SignupPage() {
                         className={`h-1 flex-1 rounded ${
                           level <= passwordStrength
                             ? passwordStrength === 1
-                              ? 'bg-red-500'
+                              ? 'bg-orange-500'
                               : passwordStrength === 2
-                              ? 'bg-yellow-500'
+                              ? 'bg-orange-500'
                               : passwordStrength === 3
-                              ? 'bg-blue-500'
-                              : 'bg-green-500'
+                              ? 'bg-orange-500'
+                              : 'bg-orange-500'
                             : 'bg-white/20'
                         }`}
                       />
@@ -205,7 +205,7 @@ export default function SignupPage() {
                   required
                   value={formData.confirmPassword}
                   onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
-                  className="w-full pl-12 pr-12 py-3 bg-transparent border border-white/30 rounded-none text-white placeholder-white/60 focus:outline-none focus:border-orange-400 focus:ring-0 transition-colors"
+                  className="w-full pl-10 pr-12 py-3 bg-transparent border border-white/30 rounded-none text-white placeholder-white/60 focus:outline-none focus:border-orange-400 focus:ring-0 transition-colors"
                   placeholder="비밀번호 확인"
                 />
                 <button
@@ -300,7 +300,7 @@ export default function SignupPage() {
               이미 계정이 있으신가요?{' '}
               <button
                 onClick={() => router.push('/auth/login')}
-                className="text-orange-400 hover:text-orange-300 font-medium transition-colors"
+                className="text-orange-500 hover:text-orange-300 font-medium transition-colors"
               >
                 로그인
               </button>

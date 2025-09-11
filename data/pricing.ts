@@ -6,7 +6,6 @@ export interface PricingPlan {
   buttonText: string;
   buttonClass: string;
   textClass: string;
-  checkClass: string;
   bgClass: string;
   textColor: string;
   isPopular: boolean;
@@ -22,7 +21,6 @@ export const pricingPlans: PricingPlan[] = [
     buttonText: '무료로 시작',
     buttonClass: 'bg-gray-200 text-gray-800',
     textClass: 'text-gray-500',
-    checkClass: 'text-green-500',
     bgClass: 'bg-white',
     textColor: 'text-gray-900',
     isPopular: false
@@ -35,8 +33,7 @@ export const pricingPlans: PricingPlan[] = [
     buttonText: '지금 시작하기',
     buttonClass: 'bg-white text-blue-500 hover:bg-gray-100',
     textClass: 'text-white',
-    checkClass: 'text-green-300',
-    bgClass: 'bg-blue-500',
+    bgClass: 'bg-orange-500',
     textColor: 'text-white',
     isPopular: true,
     onClick: () => {
@@ -51,7 +48,6 @@ export const pricingPlans: PricingPlan[] = [
     buttonText: '문의하기',
     buttonClass: 'bg-gray-900 text-white hover:bg-gray-800',
     textClass: 'text-gray-500',
-    checkClass: 'text-green-500',
     bgClass: 'bg-white',
     textColor: 'text-gray-900',
     isPopular: false

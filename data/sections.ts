@@ -28,9 +28,9 @@ export const bottomCards: BottomCard[] = [
 ];
 
 export const processSteps: ProcessStep[] = [
-  { step: 1, color: 'bg-blue-500', title: '계정 연결', description: 'SNS 계정을 안전하게 연결하고 프로필을 설정하세요' },
-  { step: 2, color: 'bg-green-500', title: '전략 수립', description: 'AI가 당신의 콘텐츠를 분석하여 최적의 마케팅 전략을 제안합니다' },
-  { step: 3, color: 'bg-purple-500', title: '자동 실행', description: '설정한 전략에 따라 자동으로 포스팅하고 성과를 분석합니다' }
+  { step: 1, color: 'bg-orange-500', title: '계정 연결', description: 'SNS 계정을 안전하게 연결하고 프로필을 설정하세요' },
+  { step: 2, color: 'bg-orange-500', title: '전략 수립', description: 'AI가 당신의 콘텐츠를 분석하여 최적의 마케팅 전략을 제안합니다' },
+  { step: 3, color: 'bg-orange-500', title: '자동 실행', description: '설정한 전략에 따라 자동으로 포스팅하고 성과를 분석합니다' }
 ];
 
 export const videoThumbnails: VideoThumbnail[] = [

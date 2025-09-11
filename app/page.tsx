@@ -12,6 +12,7 @@ import FAQAccordion from "@/components/sections/FAQAccordion";
 
 // Hooks
 import { useScrollSpy } from "@/hooks/useScrollSpy";
+import { useIntersectionObserver } from "@/hooks/useIntersectionObserver";
 
 // Constants
 import { navData, popularFeatures, socialProofData, faqData } from "@/constants/navigation";
@@ -24,6 +25,48 @@ const Home = () => {
   const router = useRouter();
   const sections = ['hero', 'about', 'features', 'pricing', 'contact'];
   const { activeSection, isNavVisible } = useScrollSpy(sections);
+  
+  // Problem-Solution 섹션 스크롤 트리거
+  const { ref: problemSolutionRef, isIntersecting: isProblemSolutionVisible } = useIntersectionObserver({
+    threshold: 0.3,
+    rootMargin: '0px 0px -100px 0px'
+  });
+
+  // Popular Features 섹션 스크롤 트리거
+  const { ref: featuresRef, isIntersecting: isFeaturesVisible } = useIntersectionObserver({
+    threshold: 0.2,
+    rootMargin: '0px 0px -100px 0px'
+  });
+
+  // Video 섹션 스크롤 트리거
+  const { ref: videoRef, isIntersecting: isVideoVisible } = useIntersectionObserver({
+    threshold: 0.3,
+    rootMargin: '0px 0px -100px 0px'
+  });
+
+  // Social Proof 섹션 스크롤 트리거
+  const { ref: socialProofRef, isIntersecting: isSocialProofVisible } = useIntersectionObserver({
+    threshold: 0.3,
+    rootMargin: '0px 0px -100px 0px'
+  });
+
+  // Steps 섹션 스크롤 트리거
+  const { ref: stepsRef, isIntersecting: isStepsVisible } = useIntersectionObserver({
+    threshold: 0.3,
+    rootMargin: '0px 0px -100px 0px'
+  });
+
+  // Pricing 섹션 스크롤 트리거
+  const { ref: pricingRef, isIntersecting: isPricingVisible } = useIntersectionObserver({
+    threshold: 0.3,
+    rootMargin: '0px 0px -100px 0px'
+  });
+
+  // FAQ 섹션 스크롤 트리거
+  const { ref: faqRef, isIntersecting: isFaqVisible } = useIntersectionObserver({
+    threshold: 0.3,
+    rootMargin: '0px 0px -100px 0px'
+  });
 
   const scrollToSection = (sectionId: string) => {
     const element = document.getElementById(sectionId);
@@ -63,7 +106,7 @@ const Home = () => {
             {/* CTA Buttons */}
             <div className="flex flex-col sm:flex-row items-center justify-center gap-6">
   <button
-    className="w-full sm:w-auto min-h-[56px] text-white text-lg font-semibold bg-green-600 hover:bg-green-700 active:bg-green-800 px-12 py-4 rounded-full transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-green-300 shadow-2xl hover:shadow-green-500/25"
+    className="w-full sm:w-auto min-h-[56px] text-white text-lg font-semibold bg-orange-500 hover:bg-orange-700 active:bg-orange-800 px-12 py-4 rounded-full transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-orange-300 shadow-2xl hover:shadow-orange-500/25"
     onClick={() => router.push("/auth/signup")}
   >
     지금 시작하기
@@ -94,7 +137,7 @@ const Home = () => {
               >
                 <h3 className="text-white text-lg font-semibold mb-2">{card.title}</h3>
                 <p className="text-white/70 text-sm mb-4">{card.description}</p>
-                <span className="text-green-400 text-sm font-medium hover:text-green-300 transition-colors">
+                <span className="text-orange-400 text-sm font-medium hover:text-orange-300 transition-colors">
                   자세히 보기 →
                 </span>
               </button>
@@ -104,78 +147,40 @@ const Home = () => {
       </section>
 
       {/* Problem/Solution Section */}
-      <section id="about" className="py-16 sm:py-20 px-4 sm:px-8 lg:px-16 bg-gray-50">
-        <div className="max-w-6xl mx-auto">
+      <section ref={problemSolutionRef} id="about" className="py-16 sm:py-20 px-4 sm:px-8 lg:px-16 bg-gray-50 h-160">
+        <div className="max-w-6xl mx-auto mt-16">
           <div className="text-center mb-16">
-            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 mb-6 leading-tight">
+            <h2 className={`text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 mb-6 leading-tight transition-all duration-1000 ${isProblemSolutionVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
               아직도 혼자 마케팅 하시나요?
             </h2>
-            <p className="text-lg sm:text-xl text-gray-600 mb-12 max-w-3xl mx-auto leading-relaxed">
+            <p className={`text-lg sm:text-xl text-gray-600 mb-12 max-w-3xl mx-auto leading-relaxed transition-all duration-1000 ${isProblemSolutionVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`} style={{transitionDelay: isProblemSolutionVisible ? '0.2s' : '0s'}}>
               크리에이터는 콘텐츠 제작에만 집중해야 합니다. 마케팅은 Muguet가 대신 해드릴게요.
             </p>
           </div>
-          <div className="grid lg:grid-cols-2 gap-8 lg:gap-16 items-start">
-            <div className="bg-white rounded-2xl p-8 shadow-sm border border-red-100">
-              <div className="flex items-center mb-6">
-                <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mr-4">
-                  <span className="text-2xl">❌</span>
-                </div>
-                <h3 className="text-2xl font-bold text-red-700">기존 문제점</h3>
-              </div>
+          <div className="flex justify-center">
               <ul className="space-y-4">
-                <li className="flex items-start">
-                  <div className="w-2 h-2 bg-red-500 rounded-full mt-2 mr-4 flex-shrink-0"></div>
-                  <span className="text-gray-700 leading-relaxed">마케팅에 시간을 너무 많이 소모</span>
+                <li className={`flex justify-center transition-all duration-700 ${isProblemSolutionVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`} style={{transitionDelay: isProblemSolutionVisible ? '0.4s' : '0s'}}>
+                  <span className="text-gray-700 text-center">AI 기반 자동 마케팅 전략</span>
                 </li>
-                <li className="flex items-start">
-                  <div className="w-2 h-2 bg-red-500 rounded-full mt-2 mr-4 flex-shrink-0"></div>
-                  <span className="text-gray-700 leading-relaxed">복잡한 SNS 관리와 분석</span>
+                <li className={`flex justify-center transition-all duration-700 ${isProblemSolutionVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`} style={{transitionDelay: isProblemSolutionVisible ? '0.6s' : '0s'}}>
+                  <span className="text-gray-700 text-center">통합 SNS 관리 대시보드</span>
                 </li>
-                <li className="flex items-start">
-                  <div className="w-2 h-2 bg-red-500 rounded-full mt-2 mr-4 flex-shrink-0"></div>
-                  <span className="text-gray-700 leading-relaxed">효과적인 광고 전략 수립의 어려움</span>
+                <li className={`flex justify-center transition-all duration-700 ${isProblemSolutionVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`} style={{transitionDelay: isProblemSolutionVisible ? '0.8s' : '0s'}}>
+                  <span className="text-gray-700 text-center">데이터 기반 성과 분석</span>
                 </li>
-                <li className="flex items-start">
-                  <div className="w-2 h-2 bg-red-500 rounded-full mt-2 mr-4 flex-shrink-0"></div>
-                  <span className="text-gray-700 leading-relaxed">개인 브랜딩의 전문성 부족</span>
+                <li className={`flex justify-center transition-all duration-700 ${isProblemSolutionVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`} style={{transitionDelay: isProblemSolutionVisible ? '1.0s' : '0s'}}>
+                  <span className="text-gray-700 text-center">전문 마케터 수준의 브랜딩</span>
                 </li>
               </ul>
-            </div>
-            <div className="bg-white rounded-2xl p-8 shadow-sm border border-green-100">
-              <div className="flex items-center mb-6">
-                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mr-4">
-                  <span className="text-2xl">✅</span>
-                </div>
-                <h3 className="text-2xl font-bold text-green-700">Muguet 솔루션</h3>
-              </div>
-              <ul className="space-y-4">
-                <li className="flex items-start">
-                  <div className="w-2 h-2 bg-green-500 rounded-full mt-2 mr-4 flex-shrink-0"></div>
-                  <span className="text-gray-700 leading-relaxed">AI 기반 자동 마케팅 전략</span>
-                </li>
-                <li className="flex items-start">
-                  <div className="w-2 h-2 bg-green-500 rounded-full mt-2 mr-4 flex-shrink-0"></div>
-                  <span className="text-gray-700 leading-relaxed">통합 SNS 관리 대시보드</span>
-                </li>
-                <li className="flex items-start">
-                  <div className="w-2 h-2 bg-green-500 rounded-full mt-2 mr-4 flex-shrink-0"></div>
-                  <span className="text-gray-700 leading-relaxed">데이터 기반 성과 분석</span>
-                </li>
-                <li className="flex items-start">
-                  <div className="w-2 h-2 bg-green-500 rounded-full mt-2 mr-4 flex-shrink-0"></div>
-                  <span className="text-gray-700 leading-relaxed">전문 마케터 수준의 브랜딩</span>
-                </li>
-              </ul>
-            </div>
           </div>
         </div>
       </section>
 
       {/* Popular Features Section */}
-      <section id="features" className="py-20 px-4 sm:px-8 lg:px-16 bg-gray-900">
+      <section ref={featuresRef} id="features" className="py-20 px-4 sm:px-8 lg:px-16 bg-gray-900">
         <div className="max-w-7xl mx-auto">
-          <div className="text-center mb-16">
-            <p className="text-green-400 text-sm font-medium tracking-wider uppercase mb-4">인기 기능</p>
+          <div className={`text-center mb-16 transition-all duration-1000 ${isFeaturesVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
+            <p className="text-orange-400 text-sm font-medium tracking-wider uppercase mb-4">인기 기능</p>
             <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6 leading-tight">
               POPULAR FEATURES
             </h2>
@@ -185,25 +190,34 @@ const Home = () => {
           </div>
           
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-8">
-            {popularFeatures.map((feature) => (
-              <FeatureCard 
-                key={feature.name} 
-                feature={feature} 
-                onFeatureClick={scrollToSection}
-              />
+            {popularFeatures.map((feature, index) => (
+              <div 
+                key={feature.name}
+                className={`transition-all duration-700 ${isFeaturesVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+                style={{transitionDelay: isFeaturesVisible ? `${0.3 + index * 0.1}s` : '0s'}}
+              >
+                <FeatureCard 
+                  feature={feature} 
+                  onFeatureClick={scrollToSection}
+                />
+              </div>
             ))}
           </div>
         </div>
       </section>
 
       {/* Social Proof Section */}
-      <section className="py-20 px-16 bg-gray-900 text-white">
+      <section ref={socialProofRef} className="py-20 px-16 bg-gray-900 text-white">
         <div className="max-w-6xl mx-auto text-center">
-          <h2 className="text-5xl font-bold mb-12">믿을 수 있는 성과</h2>
+          <h2 className={`text-5xl font-bold mb-12 transition-all duration-1000 ${isSocialProofVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>믿을 수 있는 성과</h2>
           <div className="grid md:grid-cols-4 gap-8 mb-16">
             {socialProofData.map((item, index) => (
-              <div key={index}>
-                <div className="text-4xl font-bold text-green-500 mb-2">{item.value}</div>
+              <div 
+                key={index}
+                className={`transition-all duration-700 ${isSocialProofVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+                style={{transitionDelay: isSocialProofVisible ? `${0.3 + index * 0.1}s` : '0s'}}
+              >
+                <div className="text-4xl font-bold text-orange-500 mb-2">{item.value}</div>
                 <div className="text-gray-400">{item.label}</div>
               </div>
             ))}
@@ -212,16 +226,20 @@ const Home = () => {
       </section>
 
       {/* How It Works Section */}
-      <section className="py-20 px-16 bg-white">
+      <section ref={stepsRef} className="py-20 px-16 bg-white">
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
+          <div className={`text-center mb-16 transition-all duration-1000 ${isStepsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
             <h2 className="text-5xl font-bold text-gray-900 mb-4">간단한 3단계</h2>
             <p className="text-xl text-gray-600">몇 분만에 시작하는 Muguet</p>
           </div>
           
           <div className="grid md:grid-cols-3 gap-12">
-            {processSteps.map((item) => (
-              <div key={item.step} className="text-center">
+            {processSteps.map((item, index) => (
+              <div 
+                key={item.step} 
+                className={`text-center transition-all duration-700 ${isStepsVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+                style={{transitionDelay: isStepsVisible ? `${0.3 + index * 0.2}s` : '0s'}}
+              >
                 <div className={`w-20 h-20 ${item.color} rounded-full flex items-center justify-center mx-auto mb-6`}>
                   <span className="text-3xl font-bold text-white">{item.step}</span>
                 </div>
@@ -234,9 +252,9 @@ const Home = () => {
       </section>
 
       {/* Pricing Section */}
-      <section id="pricing" className="py-20 px-16 bg-gray-50">
+      <section ref={pricingRef} id="pricing" className="py-20 px-16 bg-gray-50">
         <div className="max-w-6xl mx-auto">
-          <div className="text-center mb-16">
+          <div className={`text-center mb-16 transition-all duration-1000 ${isPricingVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
             <h2 className="text-5xl font-bold text-gray-900 mb-4">합리적인 가격</h2>
             <p className="text-xl text-gray-600">크리에이터를 위한 특별한 요금제</p>
           </div>
@@ -246,7 +264,11 @@ const Home = () => {
               const handleClick = plan.name === '프로' ? () => router.push("/signup") : undefined;
               
               return (
-                <div key={index} className={`${plan.bgClass} rounded-2xl p-8 shadow-lg ${plan.textColor} relative`}>
+                <div 
+                  key={index} 
+                  className={`${plan.bgClass} rounded-2xl p-8 shadow-lg ${plan.textColor} relative flex flex-col h-full transition-all duration-700 ${isPricingVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}
+                  style={{transitionDelay: isPricingVisible ? `${0.3 + index * 0.2}s` : '0s'}}
+                >
                   {plan.isPopular && (
                     <div className="absolute -top-4 left-1/2 transform -translate-x-1/2">
                       <span className="bg-yellow-400 text-yellow-900 px-4 py-1 rounded-full text-sm font-bold">인기</span>
@@ -257,16 +279,16 @@ const Home = () => {
                     {plan.price}
                     <span className={`text-lg font-normal ${plan.textClass}`}>{plan.period}</span>
                   </div>
-                  <ul className="space-y-3 mb-8">
+                  <ul className="space-y-3 mb-8 flex-grow">
                     {plan.features.map((feature, featureIndex) => (
                       <li key={featureIndex} className="flex items-center">
-                        <span className={`${plan.checkClass} mr-2`}>✓</span>
+                        <span className="mr-2">✓</span>
                         <span className={plan.textClass}>{feature}</span>
                       </li>
                     ))}
                   </ul>
                   <button 
-                    className={`w-full py-3 rounded-lg font-medium transition-colors ${plan.buttonClass}`}
+                    className={`w-full py-3 rounded-lg font-medium transition-colors ${plan.buttonClass} mt-auto`}
                     onClick={handleClick}
                   >
                     {plan.buttonText}
@@ -279,54 +301,39 @@ const Home = () => {
       </section>
 
       {/* FAQ Section */}
-      <section id="contact" className="py-20 px-16 bg-white">
+      <section ref={faqRef} id="contact" className="py-20 px-16 bg-white">
         <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-16">
+          <div className={`text-center mb-16 transition-all duration-1000 ${isFaqVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
             <h2 className="text-5xl font-bold text-gray-900 mb-4">자주 묻는 질문</h2>
             <p className="text-xl text-gray-600">궁금한 점들을 미리 확인해보세요</p>
           </div>
           
-          <FAQAccordion faqData={faqData} />
+          <div className={`transition-all duration-1000 ${isFaqVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`} style={{transitionDelay: isFaqVisible ? '0.3s' : '0s'}}>
+            <FAQAccordion faqData={faqData} />
+          </div>
         </div>
       </section>
 
       {/* Inspiration & Video Section */}
-      <section className="relative py-20 px-4 sm:px-8 lg:px-16 bg-gradient-to-br from-gray-900 via-gray-800 to-black overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-green-500/10 via-transparent to-green-600/5"></div>
+      <section ref={videoRef} className="relative py-20 px-4 sm:px-8 lg:px-16 bg-gradient-to-br from-gray-900 via-gray-800 to-black overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-br from-orange-500/10 via-transparent to-orange-600/5"></div>
         <div className="relative z-10 max-w-6xl mx-auto text-center">
-          <h2 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-8 leading-tight">
+          <h2 className={`text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-8 leading-tight transition-all duration-1000 ${isVideoVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
             CREATE AND
             <br />
             INSPIRE YOUR LIFE
           </h2>
-          <p className="text-white/70 text-lg sm:text-xl mb-12 max-w-3xl mx-auto leading-relaxed">
+          <p className={`text-white/70 text-lg sm:text-xl mb-12 max-w-3xl mx-auto leading-relaxed transition-all duration-1000 ${isVideoVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`} style={{transitionDelay: isVideoVisible ? '0.2s' : '0s'}}>
             당신의 스토리를 세상에 전달하고, 영감을 주는 크리에이터가 되어보세요
           </p>
           
           
           {/* Video Description */}
-          <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10 max-w-2xl mx-auto mb-12">
+          <div className={`bg-white/5 backdrop-blur-sm rounded-2xl p-8 border border-white/10 max-w-2xl mx-auto mb-12 transition-all duration-1000 ${isVideoVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`} style={{transitionDelay: isVideoVisible ? '0.4s' : '0s'}}>
             <p className="text-white/80 leading-relaxed">
               Muguet를 통해 마케팅의 모든 것을 자동화하고, 진정한 크리에이터로서의 여정을 시작하세요. <br />
               AI가 당신의 콘텐츠를 분석하고 최적의 전략을 제안합니다.
             </p>
-          </div>
-          
-          {/* Related Video Thumbnails */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-4xl mx-auto">
-            {videoThumbnails.map((video, index) => (
-              <div key={index} className="group relative overflow-hidden rounded-xl bg-gradient-to-br from-gray-800 to-gray-900 hover:from-green-500/20 hover:to-green-600/20 transition-all duration-300 border border-gray-700 hover:border-green-500/50">
-                <div className={`aspect-video bg-gradient-to-br ${video.gradient} flex items-center justify-center`}>
-                  <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center group-hover:bg-green-500/30 transition-colors duration-300">
-                    <div className="w-0 h-0 border-l-[8px] border-l-white border-y-[6px] border-y-transparent ml-1"></div>
-                  </div>
-                </div>
-                <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-                <div className="absolute bottom-4 left-4 right-4">
-                  <p className="text-white text-sm font-medium">{video.title}</p>
-                </div>
-              </div>
-            ))}
           </div>
         </div>
       </section>

@@ -16,7 +16,6 @@ const Navigation = ({ activeSection, onSectionClick }: NavigationProps) => {
     <>
       <nav className="fixed top-0 left-0 w-full z-20 flex items-center justify-between px-6 sm:px-8 lg:px-16 py-6 bg-black/20 backdrop-blur-sm">
         <div className="flex items-center space-x-2">
-          <div className="w-8 h-8 bg-orange-500 rounded-full"></div>
           <span className="text-white text-xl font-bold tracking-wider">MUGUET</span>
         </div>
         
@@ -27,7 +26,7 @@ const Navigation = ({ activeSection, onSectionClick }: NavigationProps) => {
               onClick={() => onSectionClick(item.href)} 
               className={`transition-colors ${
                 activeSection === item.href 
-                  ? 'text-white border-b-2 border-green-500 pb-1' 
+                  ? 'text-white border-b-2 border-orange-500 pb-1' 
                   : 'text-white/80 hover:text-white'
               }`}
             >
@@ -37,9 +36,6 @@ const Navigation = ({ activeSection, onSectionClick }: NavigationProps) => {
         </div>
         
         <div className="flex items-center space-x-4">
-          <button className="w-6 h-6 text-white/80 hover:text-white transition-colors">
-            <Search className="w-6 h-6" />
-          </button>
           <button 
             className="md:hidden text-white/80 hover:text-white transition-colors"
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
