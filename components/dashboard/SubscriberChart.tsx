@@ -8,7 +8,12 @@ interface ChartPoint {
 }
 
 const chartData: ChartPoint[] = [
-  { date: '2025-06-18', value: 194069, x: 400, y: 50 }
+  { date: '2025-05-01', value: 180000, x: 0, y: 42 },
+  { date: '2025-06-01', value: 194069, x: 20, y: 28 },
+  { date: '2025-07-01', value: 210000, x: 40, y: 21 },
+  { date: '2025-08-01', value: 225000, x: 60, y: 14 },
+  { date: '2025-09-01', value: 240000, x: 80, y: 7 },
+  { date: '2025-10-01', value: 251012, x: 100, y: 3 }
 ];
 
 const months = ['5월', '6월', '7월', '8월', '9월', '10월'];
@@ -58,25 +63,47 @@ export default function SubscriberChart() {
 
             {/* 차트 영역 */}
             <div className="h-72 relative">
-              {/* 데이터 포인트 */}
-              {chartData.map((point, index) => (
-                <div key={index} className="absolute" style={{ left: `${point.x}px`, top: `${point.y}px` }}>
-                  {/* 툴팁 */}
-                  {/*
-                    <div className="absolute -top-16 -left-11 bg-[#12121e] border border-[#3a3b50] rounded-lg p-3 text-xs">
-                    <div className="text-white opacity-40 mb-1">{point.date}</div>
-                    <div className="text-[#e2e2e4] font-medium">{point.value.toLocaleString()}</div>
-                  </div>
-                  */}
-                  
-                  
-                  {/* 데이터 포인트 */}
-                  {/*
-                    <div className="w-2.5 h-2.5 bg-[#ffd9a3] border-2 border-[#ff8953] rounded-full" />
-                  */}
-                  
-                </div>
-              ))}
+              {/* SVG 차트 */}
+              <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100% 100%" preserveAspectRatio="none">
+                {/* 영역 채우기 */}
+                <defs>
+                  <linearGradient id="areaGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                    <stop offset="0%" stopColor="#ff8953" stopOpacity="0.3"/>
+                    <stop offset="100%" stopColor="#ff8953" stopOpacity="0.05"/>
+                  </linearGradient>
+                </defs>
+                
+                {/* 영역 경로 */}
+                <path
+                  d={`M 0%,42% L 20%,28% L 40%,21% L 60%,14% L 80%,7% L 100%,3% L 100%,100% L 0%,100% Z`}
+                  fill="url(#areaGradient)"
+                />
+                
+                {/* 라인 경로 */}
+                <path
+                  d={`M 0%,42% L 20%,28% L 40%,21% L 60%,14% L 80%,7% L 100%,3%`}
+                  stroke="#ff8953"
+                  strokeWidth="3"
+                  fill="none"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+                
+                {/* 데이터 포인트들 */}
+                {chartData.map((point, index) => (
+                  <circle
+                    key={index}
+                      cx={`${point.x}%`}
+                    cy={`${point.y}%` }
+                    r="4"
+                    fill="#ffd9a3"
+                    stroke="#ff8953"
+                    strokeWidth="2"
+                  />
+                ))}
+              </svg>
+              
+            
             </div>
 
             {/* X축 라벨 */}

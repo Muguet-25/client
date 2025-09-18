@@ -10,12 +10,12 @@ interface StatsCardProps {
 
 export default function StatsCard({ title, value, changePercent, changeType, icon }: StatsCardProps) {
   return (
-    <div className="bg-[#1c1c28] border border-[#3a3b50] rounded-[20px] p-6">
-      <div className="space-y-4">
-        <div className="flex flex-col space-y-3">
+    <div className="bg-[#1c1c28] border border-[#3a3b50] rounded-[20px] p-6 h-full">
+      <div className="space-y-10">
+        <div className="flex flex-col space-y-6">
           <h3 className="text-white text-base font-normal">{title}</h3>
           
-          <div className="space-y-3">
+          <div className="space-y-6">
             <div className="text-[#e2e2e4] text-5xl font-bold leading-[54px]">
               {value}
             </div>

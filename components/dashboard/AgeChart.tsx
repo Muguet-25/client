@@ -39,7 +39,7 @@ export default function AgeChart() {
           </div>
           
           {/* 범례 */}
-          <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
             {ageGroups.map((group, index) => (
               <div key={group.age} className="flex items-center space-x-1">
                 <div 
