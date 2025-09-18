@@ -67,7 +67,7 @@ export default function LoginPage() {
           <div className="text-center">
             <h1 className="text-6xl font-bold text-white mb-4 tracking-wider">
               MUGUET
-              <span className="text-green-400 ml-2">●</span>
+              <span className="text-orange-500 ml-2">●</span>
             </h1>
             <p className="text-white/80 text-lg">
               크리에이터를 위한 마케팅 플랫폼
@@ -83,7 +83,7 @@ export default function LoginPage() {
             <h2 className="text-3xl font-bold text-white uppercase tracking-wider mb-2">
               SIGN IN
             </h2>
-            <div className="w-12 h-0.5 bg-green-400 mb-6"></div>
+            <div className="w-12 h-0.5 bg-orange-500 mb-6"></div>
             <p className="text-white/70 text-sm">
               이메일과 비밀번호를 입력하여 로그인하세요
             </p>
@@ -111,7 +111,7 @@ export default function LoginPage() {
                   required
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full pl-12 pr-4 py-3 bg-transparent border border-white/30 rounded-none text-white placeholder-white/60 focus:outline-none focus:border-green-400 focus:ring-0 transition-colors"
+                  className="w-full pl-12 pr-4 py-3 bg-transparent border border-white/30 rounded-none text-white placeholder-white/60 focus:outline-none focus:border-orange-400 focus:ring-0 transition-colors"
                   placeholder="이메일"
                 />
               </div>
@@ -130,7 +130,7 @@ export default function LoginPage() {
                   required
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  className="w-full pl-12 pr-12 py-3 bg-transparent border border-white/30 rounded-none text-white placeholder-white/60 focus:outline-none focus:border-green-400 focus:ring-0 transition-colors"
+                  className="w-full pl-12 pr-12 py-3 bg-transparent border border-white/30 rounded-none text-white placeholder-white/60 focus:outline-none focus:border-orange-400 focus:ring-0 transition-colors"
                   placeholder="비밀번호"
                 />
                 <button
@@ -153,7 +153,7 @@ export default function LoginPage() {
                   id="remember-me"
                   name="remember-me"
                   type="checkbox"
-                  className="h-4 w-4 text-green-400 bg-transparent border-white/30 rounded focus:ring-green-400 focus:ring-offset-0"
+                  className="h-4 w-4 text-orange-400 bg-transparent border-white/30 rounded focus:ring-orange-400 focus:ring-offset-0"
                 />
                 <label htmlFor="remember-me" className="ml-2 block text-sm text-white/70">
                   로그인 상태 유지
@@ -171,7 +171,7 @@ export default function LoginPage() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full py-3 px-4 border border-white/30 text-white uppercase font-medium hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-green-400 focus:ring-offset-2 focus:ring-offset-black disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+              className="w-full py-3 px-4 border border-white/30 text-white uppercase font-medium hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-orange-400 focus:ring-offset-2 focus:ring-offset-black disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
             >
               {isLoading ? '로그인 중...' : 'SIGN IN'}
             </button>
@@ -191,7 +191,7 @@ export default function LoginPage() {
               <button
                 onClick={() => handleSnsLogin('google')}
                 disabled={isLoading}
-                className="w-full inline-flex justify-center py-3 px-4 border border-white/30 text-white/70 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-green-400 disabled:opacity-50 transition-all duration-200"
+                className="w-full inline-flex justify-center py-3 px-4 border border-white/30 text-white/70 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-orange-400 disabled:opacity-50 transition-all duration-200"
               >
                 <span className="sr-only">Google로 로그인</span>
                 <svg className="h-5 w-5 text-white" viewBox="0 0 24 24">
@@ -205,7 +205,7 @@ export default function LoginPage() {
               <button
                 onClick={() => handleSnsLogin('kakao')}
                 disabled={isLoading}
-                className="w-full inline-flex justify-center py-3 px-4 border border-white/30 text-white/70 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-green-400 disabled:opacity-50 transition-all duration-200"
+                className="w-full inline-flex justify-center py-3 px-4 border border-white/30 text-white/70 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-orange-400 disabled:opacity-50 transition-all duration-200"
               >
                 <span className="sr-only">카카오로 로그인</span>
                 <span className="text-yellow-400 font-bold text-xl">K</span>
@@ -214,7 +214,7 @@ export default function LoginPage() {
               <button
                 onClick={() => handleSnsLogin('facebook')}
                 disabled={isLoading}
-                className="w-full inline-flex justify-center py-3 px-4 border border-white/30 text-white/70 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-green-400 disabled:opacity-50 transition-all duration-200"
+                className="w-full inline-flex justify-center py-3 px-4 border border-white/30 text-white/70 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-orange-400 disabled:opacity-50 transition-all duration-200"
               >
                 <span className="sr-only">페이스북으로 로그인</span>
                 <svg className="h-5 w-5 text-white" fill="currentColor" viewBox="0 0 24 24">
@@ -229,7 +229,7 @@ export default function LoginPage() {
               계정이 없으신가요?{' '}
               <button
                 onClick={() => router.push('/auth/signup')}
-                className="text-green-400 hover:text-green-300 font-medium transition-colors"
+                className="text-orange-400 hover:text-orange-300 font-medium transition-colors"
               >
                 회원가입
               </button>
