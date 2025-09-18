@@ -20,12 +20,6 @@ const FeatureCard = ({ feature, onFeatureClick }: FeatureCardProps) => {
         <p className="text-white/70 leading-relaxed mb-6">
           {feature.description}
         </p>
-        <button
-          onClick={() => onFeatureClick?.(feature.href)}
-          className="text-orange-400 text-sm font-medium opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-        >
-          자세히 보기 →
-        </button>
       </div>
     </div>
   );
