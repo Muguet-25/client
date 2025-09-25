@@ -28,7 +28,7 @@ export default function SubscriberChart() {
         height: "400px",
         width: "100%",
         background: "#1c1c28",
-        borderRadius: "12px",
+        borderRadius: "20px",
         border: "1px solid #3a3b50",
         padding: "20px",
         marginBottom: "20px",
