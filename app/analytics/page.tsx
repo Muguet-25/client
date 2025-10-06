@@ -171,7 +171,7 @@ export default function AnalyticsPage() {
               <div>
                 <p className="text-sm text-gray-400 mb-1">총 조회수</p>
                 <p className="text-3xl font-bold text-white">{formatNumber(analyticsData.totalViews)}</p>
-                <p className="text-sm text-green-400 mt-1">+12.5% 이전 기간 대비</p>
+                <p className="text-sm text-orange-500 mt-1">+12.5% 이전 기간 대비</p>
               </div>
               <div className="w-12 h-12 bg-orange-500/20 rounded-lg flex items-center justify-center">
                 <Eye className="w-6 h-6 text-orange-500" />
@@ -184,7 +184,7 @@ export default function AnalyticsPage() {
               <div>
                 <p className="text-sm text-gray-400 mb-1">총 좋아요</p>
                 <p className="text-3xl font-bold text-white">{formatNumber(analyticsData.totalLikes)}</p>
-                <p className="text-sm text-green-400 mt-1">+8.3% 이전 기간 대비</p>
+                <p className="text-sm text-orange-500 mt-1">+8.3% 이전 기간 대비</p>
               </div>
               <div className="w-12 h-12 bg-orange-500/20 rounded-lg flex items-center justify-center">
                 <Heart className="w-6 h-6 text-orange-500" />
@@ -197,7 +197,7 @@ export default function AnalyticsPage() {
               <div>
                 <p className="text-sm text-gray-400 mb-1">총 댓글</p>
                 <p className="text-3xl font-bold text-white">{formatNumber(analyticsData.totalComments)}</p>
-                <p className="text-sm text-green-400 mt-1">+15.2% 이전 기간 대비</p>
+                <p className="text-sm text-orange-500 mt-1">+15.2% 이전 기간 대비</p>
               </div>
               <div className="w-12 h-12 bg-orange-500/20 rounded-lg flex items-center justify-center">
                 <MessageCircle className="w-6 h-6 text-orange-500" />
@@ -210,7 +210,7 @@ export default function AnalyticsPage() {
               <div>
                 <p className="text-sm text-gray-400 mb-1">참여율</p>
                 <p className="text-3xl font-bold text-white">{analyticsData.engagementRate}%</p>
-                <p className="text-sm text-green-400 mt-1">+2.1% 이전 기간 대비</p>
+                <p className="text-sm text-orange-500 mt-1">+2.1% 이전 기간 대비</p>
               </div>
               <div className="w-12 h-12 bg-orange-500/20 rounded-lg flex items-center justify-center">
                 <TrendingUp className="w-6 h-6 text-orange-500" />
