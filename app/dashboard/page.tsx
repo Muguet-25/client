@@ -3,6 +3,8 @@
 import StatsCard from '@/components/dashboard/StatsCard';
 import AgeChart from '@/components/dashboard/AgeChart';
 import SubscriberChart from '@/components/dashboard/SubscriberChart';
+import MarketingStrategy from '@/components/dashboard/MarketingStrategy';
+import ReservedVideos from '@/components/dashboard/ReservedVideos';
 import DashboardNavigation from '@/components/dashboard/Navigation';
 import { useAuthStore } from '@/lib/useAuthStore';
 import { Download, Upload } from 'lucide-react';
@@ -20,7 +22,7 @@ export default function Dashboard() {
 
       
       {/* 헤더 섹션 */}
-      <div className="max-w-7xl mx-auto px-6 pt-8 pb-4">
+      <div className="sticky top-0 z-10 bg-[#12121E] max-w-7xl mx-auto px-6 pt-8 pb-4">
         <div className="flex justify-between items-start">
           <div>
             <h1 className="text-[3rem] font-bold text-white">대시보드</h1>
@@ -70,6 +72,16 @@ export default function Dashboard() {
           {/* 구독자 차트 */}
           <div className="w-full">
             <SubscriberChart />
+          </div>
+
+          {/* 추천 마케팅 전략 */}
+          <div className="w-full">
+            <MarketingStrategy />
+          </div>
+
+          {/* 예약된 동영상 */}
+          <div className="w-full">
+            <ReservedVideos />
           </div>
         </div>
       </div>
