@@ -148,18 +148,38 @@ export class YouTubeAPI {
     };
   }
 
-  // 비디오 목록 가져오기 (할당량 절약 버전)
+  // 비디오 목록 가져오기 (2단계 과정)
   async getVideos(channelId?: string, maxResults: number = 10): Promise<YouTubeVideo[]> {
-    // 할당량 절약을 위해 최대 10개로 제한하고, videos API만 사용
-    const videoParams = {
-      part: 'snippet,statistics,status',
-      mySubscriptions: 'false',
-      maxResults: maxResults.toString(),
-      order: 'date',
-      type: 'video',
-    };
-
     try {
+      // 1단계: /search API로 비디오 ID 목록 가져오기
+      const searchParams = {
+        part: 'snippet',
+        forMine: 'true', // 인증된 사용자의 비디오만 가져오기
+        type: 'video',
+        maxResults: maxResults.toString(),
+        order: 'date',
+      };
+
+      const searchResponse = await this.makeRequest<{
+        items: Array<{
+          id: { videoId: string };
+          snippet: any;
+        }>;
+      }>(`${YOUTUBE_API_BASE}/search`, searchParams);
+
+      if (!searchResponse.items || searchResponse.items.length === 0) {
+        console.log('사용자의 비디오가 없습니다.');
+        return [];
+      }
+
+      // 2단계: 비디오 ID들을 콤마로 구분하여 /videos API로 상세 정보 가져오기
+      const videoIds = searchResponse.items.map(item => item.id.videoId).join(',');
+      
+      const videoParams = {
+        part: 'snippet,statistics,status',
+        id: videoIds,
+      };
+
       const videoResponse = await this.makeRequest<{
         items: Array<{
           id: string;
