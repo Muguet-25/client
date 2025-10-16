@@ -26,8 +26,8 @@ type LoginStore = {
     resetPassword: (email: string) => Promise<void>;
     logout: () => Promise<void>;
 
-    validateLogin: (data: { email: string, password: string}) => { success: boolean, errors?: any };
-    validateSignup: (data: {email: string, password: string, confirmPassword: string}) => { success: boolean, errors?: any };
+    validateLogin: (data: { email: string, password: string}) => { success: boolean, errors?: Record<string, string> };
+    validateSignup: (data: {email: string, password: string, confirmPassword: string}) => { success: boolean, errors?: Record<string, string> };
 
     isLoading: boolean;
     error: string | null;
@@ -39,14 +39,18 @@ export const useLoginStore = create<LoginStore>((set, get) => ({
         const result = loginSchema.safeParse(data);
         return {
             success: result.success,
-            errors: result.success ? undefined : result.error.flatten().fieldErrors,
+            errors: result.success ? undefined : Object.fromEntries(
+                Object.entries(result.error.flatten().fieldErrors).map(([key, value]) => [key, value?.[0] || ''])
+            ),
         };
     },
     validateSignup: (data) => {
         const result = signupSchema.safeParse(data);
         return {
             success: result.success,
-            errors: result.success ? undefined : result.error.flatten().fieldErrors,
+            errors: result.success ? undefined : Object.fromEntries(
+                Object.entries(result.error.flatten().fieldErrors).map(([key, value]) => [key, value?.[0] || ''])
+            ),
         };
     },
 

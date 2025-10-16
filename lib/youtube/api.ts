@@ -9,6 +9,47 @@ import {
 const YOUTUBE_API_BASE = 'https://www.googleapis.com/youtube/v3';
 const YOUTUBE_ANALYTICS_API_BASE = 'https://youtubeanalytics.googleapis.com/v2';
 
+// YouTube API 응답 타입 정의
+interface YouTubeSnippet {
+  title: string;
+  description: string;
+  publishedAt: string;
+  customUrl?: string;
+  thumbnails: {
+    default: { url: string; width: number; height: number };
+    medium: { url: string; width: number; height: number };
+    high: { url: string; width: number; height: number };
+  };
+  channelId: string;
+  channelTitle: string;
+  categoryId: string;
+  tags?: string[];
+}
+
+interface YouTubeStatistics {
+  viewCount: string;
+  likeCount: string;
+  commentCount: string;
+  subscriberCount?: string;
+  videoCount?: string;
+}
+
+interface YouTubeStatus {
+  privacyStatus: 'public' | 'private' | 'unlisted';
+  uploadStatus: 'processed' | 'uploaded' | 'failed';
+}
+
+interface YouTubeBrandingSettings {
+  channel?: {
+    title: string;
+    description: string;
+    keywords: string;
+  };
+  image?: {
+    bannerExternalUrl: string;
+  };
+}
+
 export class YouTubeAPI {
   private accessToken: string;
 
@@ -121,9 +162,9 @@ export class YouTubeAPI {
     const response = await this.makeRequest<{
       items: Array<{
         id: string;
-        snippet: any;
-        statistics: any;
-        brandingSettings: any;
+        snippet: YouTubeSnippet;
+        statistics: YouTubeStatistics;
+        brandingSettings: YouTubeBrandingSettings;
       }>;
     }>(`${YOUTUBE_API_BASE}/channels`, params);
 
@@ -144,7 +185,13 @@ export class YouTubeAPI {
         subscriberCount: channel.statistics.subscriberCount || '0',
         videoCount: channel.statistics.videoCount || '0',
       },
-      brandingSettings: channel.brandingSettings,
+      brandingSettings: {
+        channel: channel.brandingSettings?.channel || {
+          title: '',
+          description: '',
+          keywords: '',
+        },
+      },
     };
   }
 
@@ -163,7 +210,7 @@ export class YouTubeAPI {
       const searchResponse = await this.makeRequest<{
         items: Array<{
           id: { videoId: string };
-          snippet: any;
+          snippet: YouTubeSnippet;
         }>;
       }>(`${YOUTUBE_API_BASE}/search`, searchParams);
 
@@ -183,9 +230,9 @@ export class YouTubeAPI {
       const videoResponse = await this.makeRequest<{
         items: Array<{
           id: string;
-          snippet: any;
-          statistics: any;
-          status: any;
+          snippet: YouTubeSnippet;
+          statistics: YouTubeStatistics;
+          status: YouTubeStatus;
         }>;
       }>(`${YOUTUBE_API_BASE}/videos`, videoParams);
 
@@ -227,9 +274,9 @@ export class YouTubeAPI {
     const response = await this.makeRequest<{
       items: Array<{
         id: string;
-        snippet: any;
-        statistics: any;
-        status: any;
+        snippet: unknown;
+        statistics: unknown;
+        status: unknown;
       }>;
     }>(`${YOUTUBE_API_BASE}/videos`, {
       part: 'snippet,statistics,status',
@@ -243,24 +290,24 @@ export class YouTubeAPI {
     const video = response.items[0];
     return {
       id: video.id,
-      title: video.snippet.title,
-      description: video.snippet.description,
-      publishedAt: video.snippet.publishedAt,
-      thumbnails: video.snippet.thumbnails,
+      title: (video.snippet as { title: string }).title,
+      description: (video.snippet as { description: string }).description,
+      publishedAt: (video.snippet as { publishedAt: string }).publishedAt,
+      thumbnails: (video.snippet as { thumbnails: { default: { url: string; width: number; height: number }, medium: { url: string; width: number; height: number }, high: { url: string; width: number; height: number } } }).thumbnails,
       statistics: {
-        viewCount: video.statistics?.viewCount || '0',
-        likeCount: video.statistics?.likeCount || '0',
-        commentCount: video.statistics?.commentCount || '0',
+        viewCount: (video.statistics as { viewCount: string }).viewCount || '0',
+        likeCount: (video.statistics as { likeCount: string }).likeCount || '0',
+        commentCount: (video.statistics as { commentCount: string }).commentCount || '0',
       },
       status: {
-        privacyStatus: video.status?.privacyStatus || 'private',
-        uploadStatus: video.status?.uploadStatus || 'processed',
+        privacyStatus: (video.status as { privacyStatus: 'public' | 'private' | 'unlisted' }).privacyStatus || 'private',
+        uploadStatus: (video.status as { uploadStatus: 'processed' | 'uploaded' | 'failed' }).uploadStatus || 'processed',
       },
       snippet: {
-        channelId: video.snippet.channelId,
-        channelTitle: video.snippet.channelTitle,
-        categoryId: video.snippet.categoryId,
-        tags: video.snippet.tags || [],
+        channelId: (video.snippet as { channelId: string }).channelId,
+        channelTitle: (video.snippet as { channelTitle: string }).channelTitle,
+        categoryId: (video.snippet as { categoryId: string }).categoryId,
+        tags: (video.snippet as { tags: string[] }).tags || [],
       },
     };
   }
