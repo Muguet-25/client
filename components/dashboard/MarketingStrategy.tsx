@@ -1,8 +1,56 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { ArrowRight, Info } from 'lucide-react';
 
+interface UploadRecommendation {
+  success: boolean;
+  data: {
+    date: string;
+    dayName: string;
+    contentType: string;
+    recommendation: string;
+    extractedTime: string;
+    timestamp: string;
+  };
+  timestamp: string;
+}
+
 export default function MarketingStrategy() {
+  const [recommendation, setRecommendation] = useState<string>('추천 정보를 불러오는 중...');
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [extractedTime, setExtractedTime] = useState<string>('');
+  useEffect(() => {
+    const fetchRecommendation = async () => {
+      try {
+        setIsLoading(true);
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/upload-time/recommend`);
+        
+        if (!response.ok) {
+          throw new Error('추천 정보를 가져오는데 실패했습니다.');
+        }
+        
+        const data: UploadRecommendation = await response.json();
+        
+        if (data.success && data.data.recommendation) {
+          setRecommendation(data.data.recommendation);
+          setExtractedTime("오후 " + data.data.extractedTime);
+          
+        } else {
+          throw new Error('추천 정보를 찾을 수 없습니다.');
+        }
+      } catch (err) {
+        console.error('추천 정보 가져오기 실패:', err);
+        setError('추천 정보를 불러올 수 없습니다.');
+        setRecommendation('추천 정보를 불러올 수 없습니다.');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchRecommendation();
+  }, []);
   return (
     <div className="w-full">
       {/* 헤더 */}
@@ -24,7 +72,7 @@ export default function MarketingStrategy() {
             최적의 업로드 시간은
           </span>
           <span className="text-[#f5f5f5] text-[48px] font-bold leading-[54px]">
-            오후 6시
+            {extractedTime}
           </span>
         </div>
 
@@ -35,9 +83,13 @@ export default function MarketingStrategy() {
         <div className="flex-1">
           <div className="relative bg-[#1c1c28] border border-[#3a3b50] rounded px-3 py-3.5 flex items-center gap-3">
             <p className="text-[#f5f5f5] text-base font-normal leading-[19px] flex-1">
-              보통 한국은 저녁 8 ~ 10시가 피크지만, 이번주는 명절이라 오후 3시에도 조회수가 급증할것으로 보입니다. 따라서 이번 주는 오후 3 ~ 5시 업로드를 추천드립니다.
+              {recommendation}
             </p>
-           
+            {error && (
+              <div className="text-red-400 text-sm">
+                ⚠️ {error}
+              </div>
+            )}
           </div>
         </div>
       </div>
