@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useToast } from '@/hooks/useToast';
 
-export default function YouTubeCallbackPage() {
+function YouTubeCallbackContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { success, error } = useToast();
@@ -156,5 +156,20 @@ export default function YouTubeCallbackPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function YouTubeCallbackPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-[#12121E] flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-16 h-16 border-4 border-[#ff8953]/30 border-t-[#ff8953] rounded-full animate-spin mx-auto mb-4"></div>
+          <h2 className="text-xl font-semibold text-white mb-2">로딩 중...</h2>
+        </div>
+      </div>
+    }>
+      <YouTubeCallbackContent />
+    </Suspense>
   );
 }
