@@ -1,11 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useYouTube } from './useYouTube';
+import { YouTubeVideo } from '@/lib/youtube/types';
 
 interface AverageViewsStats {
   averageViews: number;
   averageLikes: number;
-  previousAverageViews: number;
-  previousAverageLikes: number;
   viewsChangePercent: number;
   likesChangePercent: number;
   viewsChangeType: 'increase' | 'decrease' | 'no-change';
@@ -33,7 +32,7 @@ export const useAverageViews = (): AverageViewsStats => {
   };
 
   // 평균 조회수 계산 함수
-  const calculateAverageViews = (videoList: any[]): number => {
+  const calculateAverageViews = (videoList: YouTubeVideo[]): number => {
     if (!videoList || videoList.length === 0) return 0;
     
     const totalViews = videoList.reduce((sum, video) => {
@@ -44,7 +43,7 @@ export const useAverageViews = (): AverageViewsStats => {
   };
 
   // 평균 좋아요수 계산 함수
-  const calculateAverageLikes = (videoList: any[]): number => {
+  const calculateAverageLikes = (videoList: YouTubeVideo[]): number => {
     if (!videoList || videoList.length === 0) return 0;
     
     const totalLikes = videoList.reduce((sum, video) => {
@@ -163,8 +162,6 @@ export const useAverageViews = (): AverageViewsStats => {
   return {
     averageViews,
     averageLikes,
-    previousAverageViews,
-    previousAverageLikes,
     viewsChangePercent: Math.abs(viewsChangePercent),
     likesChangePercent: Math.abs(likesChangePercent),
     viewsChangeType,

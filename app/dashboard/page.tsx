@@ -9,7 +9,7 @@ import DashboardNavigation from '@/components/dashboard/Navigation';
 import { useAuthStore } from '@/lib/useAuthStore';
 import { useAverageViews } from '@/hooks/useAverageViews';
 import { useYouTube } from '@/hooks/useYouTube';
-import { Download, Upload } from 'lucide-react';
+import { Upload } from 'lucide-react';
 
 export default function Dashboard() {
   const { user } = useAuthStore();
