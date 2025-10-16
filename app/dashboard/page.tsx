@@ -18,11 +18,14 @@ export default function Dashboard() {
 
 
       {/* 네비게이션 */}
-      <DashboardNavigation />
+      <div className="fixed top-0 left-0 right-0 z-50">
+        <DashboardNavigation />
+      </div>
+      
 
       
       {/* 헤더 섹션 */}
-      <div className="sticky top-0 z-10 bg-[#12121E] max-w-7xl mx-auto px-6 pt-8 pb-4">
+      <div className="bg-[#12121E] max-w-7xl mx-auto px-6 pt-8 pb-4 mt-12">
         <div className="flex justify-between items-start">
           <div>
             <h1 className="text-[3rem] font-bold text-white">대시보드</h1>
