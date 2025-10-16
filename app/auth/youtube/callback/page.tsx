@@ -11,16 +11,28 @@ export default function YouTubeCallbackPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [status, setStatus] = useState('처리 중...');
   const [isProcessing, setIsProcessing] = useState(false);
+  const [hasProcessed, setHasProcessed] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
     let timeoutId: NodeJS.Timeout;
     
     const handleCallback = async () => {
-      // 이미 처리된 요청인지 확인 (localStorage에 토큰이 있으면 이미 성공)
+      console.log('handleCallback 시작');
+      // 이미 처리된 요청인지 확인
+      if (hasProcessed) {
+        console.log('이미 처리 완료됨. 대시보드로 이동합니다.');
+        if (isMounted) {
+          window.location.href = '/dashboard';
+        }
+        return;
+      }
+
+      // localStorage에 토큰이 있으면 이미 성공
       const existingToken = localStorage.getItem('youtube_access_token');
       if (existingToken) {
         setStatus('이미 연결됨 - 대시보드로 이동합니다...');
+        setHasProcessed(true);
         if (isMounted) {
           window.location.href = '/dashboard';
         }
@@ -29,7 +41,10 @@ export default function YouTubeCallbackPage() {
 
       // 중복 처리 방지
       if (isProcessing) {
-        console.log('이미 처리 중입니다.');
+        console.log('이미 처리 중입니다. 대시보드로 이동합니다.');
+        if (isMounted) {
+          window.location.href = '/dashboard';
+        }
         return;
       }
 
@@ -59,6 +74,8 @@ export default function YouTubeCallbackPage() {
         }, 10000);
 
         // 서버에 코드를 전송하여 토큰 교환
+        console.log('토큰 교환 요청 시작, 코드:', code.substring(0, 10) + '...');
+        
         const response = await fetch('/api/auth/youtube/callback', {
           method: 'POST',
           headers: {
@@ -66,6 +83,8 @@ export default function YouTubeCallbackPage() {
           },
           body: JSON.stringify({ code }),
         });
+        
+        console.log('토큰 교환 응답 상태:', response.status);
 
         if (!response.ok) {
           const errorData = await response.json();
@@ -85,11 +104,11 @@ export default function YouTubeCallbackPage() {
         }
 
         setStatus('연결 완료!');
+        setHasProcessed(true);
         success("YouTube 연결 완료", "YouTube 채널이 성공적으로 연결되었습니다!");
         
         // 즉시 대시보드로 리다이렉트
         if (isMounted) {
-          // window.location을 사용하여 확실한 리다이렉트
           window.location.href = '/dashboard';
         }
         
@@ -98,6 +117,7 @@ export default function YouTubeCallbackPage() {
         
         console.error('YouTube 인증 오류:', err);
         setStatus('연결 실패');
+        setHasProcessed(true);
         error("YouTube 연결 실패", err instanceof Error ? err.message : '알 수 없는 오류가 발생했습니다.');
         
         // 즉시 대시보드로 리다이렉트
@@ -123,12 +143,12 @@ export default function YouTubeCallbackPage() {
         clearTimeout(timeoutId);
       }
     };
-  }, [searchParams, router, success, error]);
+  }, []); // 의존성 배열을 비워서 한 번만 실행
 
   return (
-    <div className="min-h-screen bg-gray-900 flex items-center justify-center">
+    <div className="min-h-screen bg-[#12121E] flex items-center justify-center">
       <div className="text-center">
-        <div className="w-16 h-16 border-4 border-orange-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+        <div className="w-16 h-16 border-4 border-[#ff8953]/30 border-t-[#ff8953] rounded-full animate-spin mx-auto mb-4"></div>
         <h2 className="text-xl font-semibold text-white mb-2">YouTube 연결 중...</h2>
         <p className="text-gray-400 mb-4">{status}</p>
         <div className="text-sm text-gray-500">

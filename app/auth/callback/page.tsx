@@ -40,10 +40,10 @@ export default function AuthCallbackPage() {
   }, [router, setAuthState, setLoading]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black flex items-center justify-center">
+    <div className="min-h-screen bg-[#12121E] flex items-center justify-center">
       <div className="text-center">
-        <div className="w-8 h-8 border-2 border-green-500/30 border-t-green-500 rounded-full animate-spin mx-auto mb-4"></div>
-        <p className="text-white text-lg">로그인 처리 중...</p>
+        <div className="w-8 h-8 border-2 border-[#ff8953]/30 border-t-[#ff8953] rounded-full animate-spin mx-auto mb-4"></div>
+        <p className="text-white text-lg">처리 중...</p>
       </div>
     </div>
   );

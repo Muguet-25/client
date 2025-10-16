@@ -6,7 +6,43 @@ const processedCodes = new Set<string>();
 
 export async function POST(request: NextRequest) {
   try {
-    const { code } = await request.json();
+    // 요청 본문이 비어있는지 확인
+    const contentType = request.headers.get('content-type');
+    console.log('Content-Type:', contentType);
+    
+    if (!contentType || !contentType.includes('application/json')) {
+      console.log('잘못된 Content-Type:', contentType);
+      return NextResponse.json(
+        { message: 'Content-Type이 application/json이어야 합니다.' },
+        { status: 400 }
+      );
+    }
+
+    // 요청 본문을 텍스트로 먼저 읽기
+    const text = await request.text();
+    console.log('요청 본문:', text);
+    
+    if (!text || text.trim() === '') {
+      console.log('빈 요청 본문 - 무시하고 성공 응답');
+      return NextResponse.json(
+        { message: '이미 처리된 요청입니다.' },
+        { status: 200 }
+      );
+    }
+
+    let body;
+    try {
+      body = JSON.parse(text);
+    } catch (parseError) {
+      console.error('JSON 파싱 오류:', parseError);
+      console.error('파싱 시도한 텍스트:', text);
+      return NextResponse.json(
+        { message: '잘못된 JSON 형식입니다.' },
+        { status: 400 }
+      );
+    }
+
+    const { code } = body;
 
     if (!code) {
       return NextResponse.json(

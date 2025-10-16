@@ -31,7 +31,7 @@ export const pricingPlans: PricingPlan[] = [
     period: '/월',
     features: ['무제한 계정 연결', '고급 분석 및 인사이트', '무제한 포스트 자동화', 'AI 콘텐츠 제안', '우선 지원'],
     buttonText: '지금 시작하기',
-    buttonClass: 'bg-white text-blue-500 hover:bg-gray-100',
+    buttonClass: 'bg-white text-orange-500 hover:bg-gray-100',
     textClass: 'text-white',
     bgClass: 'bg-orange-500',
     textColor: 'text-white',

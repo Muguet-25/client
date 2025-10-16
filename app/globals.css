@@ -58,7 +58,7 @@
 }
 
 body {
-  background: var(--background);
+  background: #12121E;
   color: var(--foreground);
   font-family: var(--font-sans);
 }
