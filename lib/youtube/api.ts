@@ -76,50 +76,37 @@ export class YouTubeAPI {
     return response.json();
   }
 
-  // 토큰 갱신
+  // 토큰 갱신 (서버 API 사용)
   private async refreshToken(): Promise<void> {
     const refreshToken = localStorage.getItem('youtube_refresh_token');
     if (!refreshToken) {
       throw new Error('Refresh token이 없습니다. 다시 로그인해주세요.');
     }
 
-    const clientId = process.env.NEXT_PUBLIC_YOUTUBE_CLIENT_ID;
-    const clientSecret = process.env.YOUTUBE_CLIENT_SECRET;
-
-    if (!clientId || !clientSecret) {
-      throw new Error('YouTube 클라이언트 설정이 올바르지 않습니다.');
-    }
-
-    const response = await fetch('https://oauth2.googleapis.com/token', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: new URLSearchParams({
-        client_id: clientId,
-        client_secret: clientSecret,
-        refresh_token: refreshToken,
-        grant_type: 'refresh_token',
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('토큰 갱신 실패:', {
-        status: response.status,
-        statusText: response.statusText,
-        error: errorText
+    try {
+      const response = await fetch('/api/auth/youtube/refresh', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ refresh_token: refreshToken }),
       });
-      throw new Error(`토큰 갱신에 실패했습니다. (${response.status}): ${errorText}`);
-    }
 
-    const data = await response.json();
-    this.accessToken = data.access_token;
-    localStorage.setItem('youtube_access_token', data.access_token);
-    
-    // 새로운 refresh token이 있으면 저장
-    if (data.refresh_token) {
-      localStorage.setItem('youtube_refresh_token', data.refresh_token);
+      if (!response.ok) {
+        throw new Error('토큰 갱신에 실패했습니다.');
+      }
+
+      const data = await response.json();
+      this.accessToken = data.access_token;
+      localStorage.setItem('youtube_access_token', data.access_token);
+      
+      // 새로운 refresh token이 있으면 저장
+      if (data.refresh_token) {
+        localStorage.setItem('youtube_refresh_token', data.refresh_token);
+      }
+    } catch (error) {
+      console.error('토큰 갱신 실패:', error);
+      throw new Error('토큰 갱신에 실패했습니다. 다시 로그인해주세요.');
     }
   }
 
@@ -161,50 +148,58 @@ export class YouTubeAPI {
     };
   }
 
-  // 비디오 목록 가져오기
-  async getVideos(channelId?: string, maxResults: number = 50): Promise<YouTubeVideo[]> {
-    const params = {
+  // 비디오 목록 가져오기 (할당량 절약 버전)
+  async getVideos(channelId?: string, maxResults: number = 10): Promise<YouTubeVideo[]> {
+    // 할당량 절약을 위해 최대 10개로 제한하고, videos API만 사용
+    const videoParams = {
       part: 'snippet,statistics,status',
-      mine: channelId ? 'false' : 'true',
+      mySubscriptions: 'false',
       maxResults: maxResults.toString(),
       order: 'date',
-      ...(channelId && { channelId }),
+      type: 'video',
     };
 
-    const response = await this.makeRequest<{
-      items: Array<{
-        id: string;
-        snippet: any;
-        statistics: any;
-        status: any;
-      }>;
-    }>(`${YOUTUBE_API_BASE}/search`, {
-      ...params,
-      type: 'video',
-    });
+    try {
+      const videoResponse = await this.makeRequest<{
+        items: Array<{
+          id: string;
+          snippet: any;
+          statistics: any;
+          status: any;
+        }>;
+      }>(`${YOUTUBE_API_BASE}/videos`, videoParams);
 
-    return response.items.map(video => ({
-      id: video.id,
-      title: video.snippet.title,
-      description: video.snippet.description,
-      publishedAt: video.snippet.publishedAt,
-      thumbnails: video.snippet.thumbnails,
-      statistics: {
-        viewCount: video.statistics?.viewCount || '0',
-        likeCount: video.statistics?.likeCount || '0',
-        commentCount: video.statistics?.commentCount || '0',
-      },
-      status: {
-        privacyStatus: video.status?.privacyStatus || 'private',
-        uploadStatus: video.status?.uploadStatus || 'processed',
-      },
-      snippet: {
-        channelId: video.snippet.channelId,
-        channelTitle: video.snippet.channelTitle,
-        categoryId: video.snippet.categoryId,
-        tags: video.snippet.tags || [],
-      },
-    }));
+      if (!videoResponse.items || videoResponse.items.length === 0) {
+        return [];
+      }
+
+      return videoResponse.items.map(video => ({
+        id: video.id,
+        title: video.snippet.title,
+        description: video.snippet.description,
+        publishedAt: video.snippet.publishedAt,
+        thumbnails: video.snippet.thumbnails,
+        statistics: {
+          viewCount: video.statistics?.viewCount || '0',
+          likeCount: video.statistics?.likeCount || '0',
+          commentCount: video.statistics?.commentCount || '0',
+        },
+        status: {
+          privacyStatus: video.status?.privacyStatus || 'private',
+          uploadStatus: video.status?.uploadStatus || 'processed',
+        },
+        snippet: {
+          channelId: video.snippet.channelId,
+          channelTitle: video.snippet.channelTitle,
+          categoryId: video.snippet.categoryId,
+          tags: video.snippet.tags || [],
+        },
+      }));
+    } catch (error) {
+      console.error('비디오 목록 가져오기 실패:', error);
+      // 할당량 초과 시 빈 배열 반환
+      return [];
+    }
   }
 
   // 비디오 상세 정보 가져오기

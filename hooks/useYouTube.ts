@@ -51,20 +51,46 @@ export const useYouTube = (): UseYouTubeReturn => {
   useEffect(() => {
     const checkConnection = () => {
       const token = localStorage.getItem('youtube_access_token');
+      
+      
       if (token) {
         try {
           setIsConnected(true);
           setApi(new YouTubeAPI(token));
           setError(null);
+          console.log('YouTube 연결 상태: 연결됨');
         } catch (err) {
           console.error('YouTube API 초기화 오류:', err);
           setError('YouTube API 초기화에 실패했습니다.');
           setIsConnected(false);
         }
+      } else {
+        console.log('YouTube 연결 상태: 연결되지 않음');
+        setIsConnected(false);
+        setApi(null);
       }
     };
 
+    // 초기 확인
     checkConnection();
+    
+    // 주기적으로 확인 (비활성화)
+    // const interval = setInterval(checkConnection, 5000);
+    
+    // localStorage 변경 감지
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'youtube_access_token') {
+        console.log('YouTube 토큰 변경 감지');
+        checkConnection();
+      }
+    };
+    
+    window.addEventListener('storage', handleStorageChange);
+    
+    return () => {
+      // clearInterval(interval);
+      window.removeEventListener('storage', handleStorageChange);
+    };
   }, []);
 
   // YouTube 연결
@@ -172,12 +198,12 @@ export const useYouTube = (): UseYouTubeReturn => {
     }
   }, [api, channel]);
 
-  // 연결 시 자동으로 채널 정보 로드
-  useEffect(() => {
-    if (isConnected && api && !channel) {
-      refreshChannel();
-    }
-  }, [isConnected, api, channel, refreshChannel]);
+  // 연결 시 자동으로 채널 정보 로드 (비활성화)
+  // useEffect(() => {
+  //   if (isConnected && api && !channel) {
+  //     refreshChannel();
+  //   }
+  // }, [isConnected, api, channel, refreshChannel]);
 
   return {
     isConnected,
