@@ -89,7 +89,7 @@ export default function Dashboard() {
             <div className="md:col-span-1">
               <StatsCard
                 title="평균 조회수"
-                value={viewsLoading ? "로딩 중..." : viewsError ? "오류 발생" : averageViews.toLocaleString()}
+                value={viewsLoading ? "로딩 중..." : averageViews.toLocaleString()}
               />
             </div>
             
@@ -97,7 +97,7 @@ export default function Dashboard() {
             <div className="md:col-span-1">
               <StatsCard
                 title="평균 좋아요 수"
-                value={viewsLoading ? "로딩 중..." : viewsError ? "오류 발생" : averageLikes.toLocaleString()}
+                value={viewsLoading ? "로딩 중..." : averageLikes.toLocaleString()}
               />
             </div>
             

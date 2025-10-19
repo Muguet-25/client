@@ -21,36 +21,90 @@ export const useAverageViews = (): AverageViewsStats => {
   const [previousAverageViews, setPreviousAverageViews] = useState(0);
   const [previousAverageLikes, setPreviousAverageLikes] = useState(0);
 
-  // 조회수 포맷팅 함수
-  const formatViewCount = (count: string): number => {
+  // 조회수 포맷팅 함수 (개선된 버전)
+  const formatViewCount = (count: string | number): number => {
+    if (typeof count === 'number') return count;
     return parseInt(count) || 0;
   };
 
-  // 좋아요수 포맷팅 함수
-  const formatLikeCount = (count: string): number => {
+  // 좋아요수 포맷팅 함수 (개선된 버전)
+  const formatLikeCount = (count: string | number): number => {
+    if (typeof count === 'number') return count;
     return parseInt(count) || 0;
   };
 
-  // 평균 조회수 계산 함수
+  // 평균 조회수 계산 함수 (개선된 버전)
   const calculateAverageViews = (videoList: YouTubeVideo[]): number => {
     if (!videoList || videoList.length === 0) return 0;
     
-    const totalViews = videoList.reduce((sum, video) => {
+    // 공개된 비디오만 필터링
+    const publicVideos = videoList.filter(video => 
+      video.status?.privacyStatus === 'public'
+    );
+    
+    if (publicVideos.length === 0) return 0;
+    
+    const totalViews = publicVideos.reduce((sum, video) => {
       return sum + formatViewCount(video.statistics?.viewCount || '0');
     }, 0);
     
-    return Math.round(totalViews / videoList.length);
+    return Math.round(totalViews / publicVideos.length);
   };
 
-  // 평균 좋아요수 계산 함수
+  // 평균 좋아요수 계산 함수 (개선된 버전)
   const calculateAverageLikes = (videoList: YouTubeVideo[]): number => {
     if (!videoList || videoList.length === 0) return 0;
     
-    const totalLikes = videoList.reduce((sum, video) => {
+    // 공개된 비디오만 필터링
+    const publicVideos = videoList.filter(video => 
+      video.status?.privacyStatus === 'public'
+    );
+    
+    if (publicVideos.length === 0) return 0;
+    
+    const totalLikes = publicVideos.reduce((sum, video) => {
       return sum + formatLikeCount(video.statistics?.likeCount || '0');
     }, 0);
     
-    return Math.round(totalLikes / videoList.length);
+    return Math.round(totalLikes / publicVideos.length);
+  };
+
+  // 통계 요약 계산 함수 (새로 추가)
+  const calculateVideoStats = (videoList: YouTubeVideo[]) => {
+    const publicVideos = videoList.filter(video => 
+      video.status?.privacyStatus === 'public'
+    );
+    
+    if (publicVideos.length === 0) {
+      return {
+        totalVideos: 0,
+        publicVideos: 0,
+        totalViews: 0,
+        totalLikes: 0,
+        totalComments: 0,
+        averageViews: 0,
+        averageLikes: 0,
+        averageComments: 0
+      };
+    }
+    
+    const totalViews = publicVideos.reduce((sum, video) => 
+      sum + formatViewCount(video.statistics?.viewCount || '0'), 0);
+    const totalLikes = publicVideos.reduce((sum, video) => 
+      sum + formatLikeCount(video.statistics?.likeCount || '0'), 0);
+    const totalComments = publicVideos.reduce((sum, video) => 
+      sum + formatViewCount(video.statistics?.commentCount || '0'), 0);
+    
+    return {
+      totalVideos: videoList.length,
+      publicVideos: publicVideos.length,
+      totalViews,
+      totalLikes,
+      totalComments,
+      averageViews: Math.round(totalViews / publicVideos.length),
+      averageLikes: Math.round(totalLikes / publicVideos.length),
+      averageComments: Math.round(totalComments / publicVideos.length)
+    };
   };
 
   // 변화율 계산 함수
@@ -102,7 +156,8 @@ export const useAverageViews = (): AverageViewsStats => {
   // 평균 조회수 새로고침 함수 (한 번만 호출)
   const refreshAverageViews = useCallback(async () => {
     if (!isConnected) {
-      setError('YouTube에 연결되지 않았습니다.');
+      console.log('YouTube에 연결되지 않음 - 0으로 표시');
+      setError(null); // 에러를 null로 설정하여 0 표시
       return;
     }
 
@@ -114,18 +169,23 @@ export const useAverageViews = (): AverageViewsStats => {
       await refreshVideos();
       
     } catch (err) {
-      setError(err instanceof Error ? err.message : '평균 조회수를 가져오는데 실패했습니다.');
+      console.error('평균 조회수 가져오기 실패:', err);
+      setError(null); // 에러를 null로 설정하여 0 표시
     } finally {
       setIsLoading(false);
     }
   }, [isConnected, refreshVideos]);
 
-  // 컴포넌트 마운트 시 한 번만 통계 새로고침 (비활성화)
-  // useEffect(() => {
-  //   if (isConnected && !youtubeLoading && videos.length === 0) {
-  //     refreshAverageViews();
-  //   }
-  // }, [isConnected, youtubeLoading, videos.length, refreshAverageViews]);
+  // 한 번만 시도하는 플래그
+  const [hasTriedOnce, setHasTriedOnce] = useState(false);
+
+  // 컴포넌트 마운트 시 한 번만 통계 새로고침
+  useEffect(() => {
+    if (isConnected && !youtubeLoading && videos.length === 0 && !hasTriedOnce) {
+      setHasTriedOnce(true);
+      refreshAverageViews();
+    }
+  }, [isConnected, youtubeLoading, videos.length, hasTriedOnce, refreshAverageViews]);
 
   // 현재 평균 조회수와 좋아요수 계산
   const averageViews = videos && videos.length > 0 

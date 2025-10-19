@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { ArrowRight } from 'lucide-react';
+import VideoUploadModal from './VideoUploadModal';
 
 interface UploadRecommendation {
   success: boolean;
@@ -21,6 +22,7 @@ export default function MarketingStrategy() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [extractedTime, setExtractedTime] = useState<string>('');
+  const [isModalOpen, setIsModalOpen] = useState(false);
   useEffect(() => {
     const fetchRecommendation = async () => {
       try {
@@ -58,7 +60,10 @@ export default function MarketingStrategy() {
         <h2 className="text-[#f5f5f5] text-[48px] font-bold leading-[54px]">
           추천 마케팅 전략
         </h2>
-        <button className="flex items-center gap-2 px-3 py-3 bg-[#ff8953]/40 border border-[#ff8953]/40 rounded-md text-[#ff8953] text-lg font-medium leading-5 hover:bg-[#ff8953]/60 transition-colors">
+        <button 
+          onClick={() => setIsModalOpen(true)}
+          className="flex items-center gap-2 px-3 py-3 bg-[#ff8953]/40 border border-[#ff8953]/40 rounded-md text-[#ff8953] text-lg font-medium leading-5 hover:bg-[#ff8953]/60 transition-colors"
+        >
           예약하러 가기
           <ArrowRight className="w-5 h-5" />
         </button>
@@ -93,6 +98,12 @@ export default function MarketingStrategy() {
           </div>
         </div>
       </div>
+
+      {/* 비디오 업로드 모달 */}
+      <VideoUploadModal 
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+      />
     </div>
   );
 }

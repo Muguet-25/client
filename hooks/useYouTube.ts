@@ -35,6 +35,10 @@ interface UseYouTubeReturn {
   refreshVideos: () => Promise<void>;
   refreshAnalytics: (startDate: string, endDate: string) => Promise<void>;
   refreshDailyData: (startDate: string, endDate: string) => Promise<void>;
+  
+  // 새로운 통계 관련 메서드들
+  getVideoStatistics: (videoId: string) => Promise<{ viewCount: number; likeCount: number; commentCount: number }>;
+  getMultipleVideoStatistics: (videoIds: string[]) => Promise<Array<{ id: string; viewCount: number; likeCount: number; commentCount: number }>>;
 }
 
 export const useYouTube = (): UseYouTubeReturn => {
@@ -198,12 +202,41 @@ export const useYouTube = (): UseYouTubeReturn => {
     }
   }, [api, channel]);
 
-  // 연결 시 자동으로 채널 정보 로드 (비활성화)
-  // useEffect(() => {
-  //   if (isConnected && api && !channel) {
-  //     refreshChannel();
-  //   }
-  // }, [isConnected, api, channel, refreshChannel]);
+  // 특정 비디오의 통계 정보 가져오기
+  const getVideoStatistics = useCallback(async (videoId: string) => {
+    if (!api) {
+      throw new Error('YouTube API가 연결되지 않았습니다.');
+    }
+    return await api.getVideoStatistics(videoId);
+  }, [api]);
+
+  // 여러 비디오의 통계 정보 가져오기
+  const getMultipleVideoStatistics = useCallback(async (videoIds: string[]) => {
+    if (!api) {
+      throw new Error('YouTube API가 연결되지 않았습니다.');
+    }
+    return await api.getMultipleVideoStatistics(videoIds);
+  }, [api]);
+
+  // 한 번만 시도하는 플래그들
+  const [hasTriedChannel, setHasTriedChannel] = useState(false);
+  const [hasTriedVideos, setHasTriedVideos] = useState(false);
+
+  // 연결 시 자동으로 채널 정보 로드 (한 번만)
+  useEffect(() => {
+    if (isConnected && api && !channel && !hasTriedChannel) {
+      setHasTriedChannel(true);
+      refreshChannel();
+    }
+  }, [isConnected, api, channel, hasTriedChannel, refreshChannel]);
+
+  // 채널 정보가 로드되면 비디오도 자동으로 로드 (한 번만)
+  useEffect(() => {
+    if (isConnected && api && channel && videos.length === 0 && !hasTriedVideos) {
+      setHasTriedVideos(true);
+      refreshVideos();
+    }
+  }, [isConnected, api, channel, videos.length, hasTriedVideos, refreshVideos]);
 
   return {
     isConnected,
@@ -219,5 +252,7 @@ export const useYouTube = (): UseYouTubeReturn => {
     refreshVideos,
     refreshAnalytics,
     refreshDailyData,
+    getVideoStatistics,
+    getMultipleVideoStatistics,
   };
 };
