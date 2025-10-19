@@ -2,6 +2,10 @@
 
 import { useState } from 'react';
 import { X, CloudUpload, ArrowUp, Sun } from 'lucide-react';
+import { WithContext as ReactTags } from 'react-tag-input';
+
+const KeyCodes = { comma: 188, enter: 13 };
+const delimiters = [KeyCodes.comma, KeyCodes.enter];
 
 interface VideoUploadModalProps {
   isOpen: boolean;
@@ -13,8 +17,16 @@ export default function VideoUploadModal({ isOpen, onClose }: VideoUploadModalPr
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [privacy, setPrivacy] = useState('public');
-  const [tags, setTags] = useState('');
+  const [tags, setTags] = useState<Array<{id: string, text: string}>>([]);
   const [category, setCategory] = useState('노하우, 스타일');
+
+  const handleDelete = (i: number) => {
+    setTags(tags.filter((tag, index) => index !== i));
+  };
+
+  const handleAddition = (tag: {id: string, text: string}) => {
+    setTags([...tags, tag]);
+  };
 
   if (!isOpen) return null;
 
@@ -164,12 +176,20 @@ export default function VideoUploadModal({ isOpen, onClose }: VideoUploadModalPr
                   태그
                 </label>
                 <div className="bg-[#12121e] border border-[#3a3b50] rounded-[16px] px-6 py-4">
-                  <input
-                    type="text"
-                    value={tags}
-                    onChange={(e) => setTags(e.target.value)}
-                    placeholder="검색에 활용되는 태그 입니다 쉼표로 구분해 입력해주세요."
-                    className="w-full bg-transparent text-[#f5f5f5] placeholder-[#f5f5f5]/60 focus:outline-none"
+                  <ReactTags
+                    tags={tags}
+                    delimiters={delimiters}
+                    handleDelete={handleDelete}
+                    handleAddition={handleAddition}
+                    placeholder="검색에 활용되는 태그 입니다 엔터로 구분해 입력해주세요."
+                    classNames={{
+                      tags: 'tags-container w-full',
+                      tagInput: 'tag-input w-full',
+                      tagInputField: 'tag-input-field',
+                      selected: 'tag-selected w-full',
+                      tag: 'tag',
+                      remove: 'tag-remove'
+                    }}
                   />
                 </div>
               </div>
