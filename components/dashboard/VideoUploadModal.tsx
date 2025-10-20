@@ -19,6 +19,35 @@ export default function VideoUploadModal({ isOpen, onClose }: VideoUploadModalPr
   const [privacy, setPrivacy] = useState('public');
   const [tags, setTags] = useState<Array<{id: string, text: string}>>([]);
   const [category, setCategory] = useState('노하우, 스타일');
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [progress, setProgress] = useState<number | null>(null);
+
+  const getAccessToken = () => localStorage.getItem('youtube_access_token') || '';
+
+  const uploadWithProgress = (url: string, file: File, headers: Record<string, string>, onProgress: (percent: number) => void): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('PUT', url);
+      Object.entries(headers).forEach(([k, v]) => xhr.setRequestHeader(k, v));
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable) {
+          const percent = Math.floor((event.loaded / event.total) * 100);
+          onProgress(percent);
+        }
+      };
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolve(xhr.responseText || '{}');
+        } else {
+          reject(new Error(`Upload failed (${xhr.status}): ${xhr.responseText}`));
+        }
+      };
+      xhr.onerror = () => reject(new Error('Network error during upload'));
+      xhr.send(file);
+    });
+  };
 
   const handleDelete = (i: number) => {
     setTags(tags.filter((tag, index) => index !== i));
@@ -66,6 +95,15 @@ export default function VideoUploadModal({ isOpen, onClose }: VideoUploadModalPr
                       영상 최대 사이즈 256GB
                     </p>
                   </div>
+                  <input
+                    type="file"
+                    accept="video/*"
+                    onChange={(e) => setVideoFile(e.target.files?.[0] || null)}
+                    className="mt-4 text-[#f5f5f5]/80"
+                  />
+                  {videoFile && (
+                    <p className="mt-2 text-[#f5f5f5]/60 text-sm">{videoFile.name}</p>
+                  )}
                 </div>
               </div>
 
@@ -167,6 +205,15 @@ export default function VideoUploadModal({ isOpen, onClose }: VideoUploadModalPr
                       JPG, PNG 형식의 2MB 이하 이미지 (최소 너비 640px)
                     </p>
                   </div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => setThumbnailFile(e.target.files?.[0] || null)}
+                    className="mt-4 text-[#f5f5f5]/80"
+                  />
+                  {thumbnailFile && (
+                    <p className="mt-2 text-[#f5f5f5]/60 text-sm">{thumbnailFile.name}</p>
+                  )}
                 </div>
               </div>
 
@@ -252,6 +299,19 @@ export default function VideoUploadModal({ isOpen, onClose }: VideoUploadModalPr
 
         {/* 하단 버튼 */}
         <div className="flex justify-center gap-4 p-4 border-t border-[#3a3b50]">
+          {isUploading && (
+            <div className="absolute left-0 right-0 bottom-[72px] px-6">
+              <div className="w-full h-2 bg-[#26273c] rounded-full overflow-hidden">
+                <div
+                  className="h-2 bg-[#ff8953] transition-all"
+                  style={{ width: `${progress ?? 0}%` }}
+                />
+              </div>
+              <div className="mt-2 text-center text-sm text-[#f5f5f5]/70">
+                {progress !== null ? `${progress}% 업로드 중` : '업로드 준비 중...'}
+              </div>
+            </div>
+          )}
           {currentStep === 1 ? (
             <>
               <button
@@ -276,14 +336,128 @@ export default function VideoUploadModal({ isOpen, onClose }: VideoUploadModalPr
                 뒤로가기
               </button>
               <button
-                onClick={() => {
-                  // 예약하기 로직
-                  console.log('예약하기 완료');
-                  onClose();
+                onClick={async () => {
+                  if (!videoFile) {
+                    alert('동영상 파일을 선택해주세요.');
+                    return;
+                  }
+
+                  try {
+                    setIsUploading(true);
+                    setProgress(null);
+
+                    const accessToken = getAccessToken();
+                    if (!accessToken) {
+                      alert('YouTube 액세스 토큰이 필요합니다. 먼저 YouTube 연결을 진행해주세요.');
+                      setIsUploading(false);
+                      return;
+                    }
+
+                    // 1) 업로드 세션 생성
+                    const startRes = await fetch('/api/youtube/upload/start', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${accessToken}`,
+                      },
+                      body: JSON.stringify({
+                        title,
+                        description,
+                        categoryId: '22',
+                        tags: tags.map(t => t.text),
+                        privacyStatus: privacy,
+                      }),
+                    });
+                    if (!startRes.ok) {
+                      const text = await startRes.text();
+                      throw new Error(text);
+                    }
+                    const { uploadUrl } = await startRes.json();
+
+                    // 2) 비디오 업로드 (서버 프록시 + 진행률)
+                    const form = new FormData();
+                    form.append('uploadUrl', uploadUrl);
+                    form.append('file', videoFile);
+                    form.append('contentType', videoFile.type || 'video/*');
+
+                    const proxyUrl = '/api/youtube/upload/video/put';
+                    const proxyResponseText = await new Promise<string>((resolve, reject) => {
+                      const xhr = new XMLHttpRequest();
+                      xhr.open('POST', proxyUrl);
+                      xhr.upload.onprogress = (event) => {
+                        if (event.lengthComputable) {
+                          const percent = Math.floor((event.loaded / event.total) * 100);
+                          setProgress(percent);
+                        }
+                      };
+                      xhr.onload = () => {
+                        if (xhr.status >= 200 && xhr.status < 300) {
+                          resolve(xhr.responseText || '{}');
+                        } else {
+                          reject(new Error(`Proxy upload failed (${xhr.status}): ${xhr.responseText}`));
+                        }
+                      };
+                      xhr.onerror = () => reject(new Error('Network error during proxy upload'));
+                      xhr.send(form);
+                    });
+                    const videoResource = JSON.parse(proxyResponseText || '{}');
+
+                    // 3) 썸네일 업로드 (선택)
+                    if (thumbnailFile) {
+                      const thumbStartRes = await fetch('/api/youtube/upload/thumbnail/start', {
+                        method: 'POST',
+                        headers: {
+                          'Content-Type': 'application/json',
+                          Authorization: `Bearer ${accessToken}`,
+                        },
+                        body: JSON.stringify({ videoId: videoResource.id, mimeType: thumbnailFile.type }),
+                      });
+                      if (!thumbStartRes.ok) {
+                        console.warn('썸네일 업로드 세션 생성 실패:', await thumbStartRes.text());
+                      } else {
+                        const { uploadUrl: thumbUrl } = await thumbStartRes.json();
+                        try {
+                          const thumbForm = new FormData();
+                          thumbForm.append('uploadUrl', thumbUrl);
+                          thumbForm.append('file', thumbnailFile);
+                          thumbForm.append('contentType', thumbnailFile.type || 'image/*');
+
+                          await new Promise<void>((resolve, reject) => {
+                            const xhr = new XMLHttpRequest();
+                            xhr.open('POST', '/api/youtube/upload/thumbnail/put');
+                            xhr.upload.onprogress = (event) => {
+                              if (event.lengthComputable) {
+                                const percent = Math.floor((event.loaded / event.total) * 100);
+                                setProgress(percent);
+                              }
+                            };
+                            xhr.onload = () => {
+                              if (xhr.status >= 200 && xhr.status < 300) resolve();
+                              else reject(new Error(`Proxy thumbnail upload failed (${xhr.status})`));
+                            };
+                            xhr.onerror = () => reject(new Error('Network error during proxy thumbnail upload'));
+                            xhr.send(thumbForm);
+                          });
+                        } catch (e) {
+                          console.warn('썸네일 업로드 실패:', e);
+                        }
+                      }
+                    }
+
+                    alert('업로드가 완료되었습니다.');
+                    onClose();
+                  } catch (err) {
+                    console.error(err);
+                    alert('업로드 중 오류가 발생했습니다. 콘솔을 확인해주세요.');
+                  } finally {
+                    setIsUploading(false);
+                    setProgress(null);
+                  }
                 }}
-                className="bg-[#ff8953]/40 border border-[#ff8953]/40 rounded-[16px] px-8 py-4 text-[18px] font-medium text-[#ff8953] hover:bg-[#ff8953]/60 transition-colors"
+                disabled={isUploading}
+                className="bg-[#ff8953]/40 border border-[#ff8953]/40 rounded-[16px] px-8 py-4 text-[18px] font-medium text-[#ff8953] hover:bg-[#ff8953]/60 transition-colors disabled:opacity-60"
               >
-                예약하기
+                {isUploading ? `업로드 중...${progress !== null ? ` ${progress}%` : ''}` : '예약하기'}
               </button>
             </>
           )}
