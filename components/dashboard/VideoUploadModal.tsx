@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { X, CloudUpload, ArrowUp, Sun } from 'lucide-react';
 import { WithContext as ReactTags } from 'react-tag-input';
 
@@ -25,6 +25,25 @@ export default function VideoUploadModal({ isOpen, onClose }: VideoUploadModalPr
   const [progress, setProgress] = useState<number | null>(null);
 
   const getAccessToken = () => localStorage.getItem('youtube_access_token') || '';
+
+  const resetForm = () => {
+    setCurrentStep(1);
+    setTitle('');
+    setDescription('');
+    setPrivacy('public');
+    setTags([]);
+    setCategory('노하우, 스타일');
+    setVideoFile(null);
+    setThumbnailFile(null);
+    setIsUploading(false);
+    setProgress(null);
+  };
+
+  useEffect(() => {
+    if (isOpen) {
+      resetForm();
+    }
+  }, [isOpen]);
 
   const uploadWithProgress = (url: string, file: File, headers: Record<string, string>, onProgress: (percent: number) => void): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -299,19 +318,6 @@ export default function VideoUploadModal({ isOpen, onClose }: VideoUploadModalPr
 
         {/* 하단 버튼 */}
         <div className="flex justify-center gap-4 p-4 border-t border-[#3a3b50]">
-          {isUploading && (
-            <div className="absolute left-0 right-0 bottom-[72px] px-6">
-              <div className="w-full h-2 bg-[#26273c] rounded-full overflow-hidden">
-                <div
-                  className="h-2 bg-[#ff8953] transition-all"
-                  style={{ width: `${progress ?? 0}%` }}
-                />
-              </div>
-              <div className="mt-2 text-center text-sm text-[#f5f5f5]/70">
-                {progress !== null ? `${progress}% 업로드 중` : '업로드 준비 중...'}
-              </div>
-            </div>
-          )}
           {currentStep === 1 ? (
             <>
               <button
@@ -445,6 +451,7 @@ export default function VideoUploadModal({ isOpen, onClose }: VideoUploadModalPr
                     }
 
                     alert('업로드가 완료되었습니다.');
+                    resetForm();
                     onClose();
                   } catch (err) {
                     console.error(err);
