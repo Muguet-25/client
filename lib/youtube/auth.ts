@@ -1,7 +1,7 @@
 // YouTube OAuth 설정
 export const YOUTUBE_OAUTH_CONFIG = {
   clientId: process.env.NEXT_PUBLIC_YOUTUBE_CLIENT_ID || '',
-  redirectUri: process.env.NEXT_PUBLIC_YOUTUBE_REDIRECT_URI || 'http://localhost:3000/auth/youtube/callback',
+  redirectUri: process.env.NEXT_PUBLIC_YOUTUBE_REDIRECT_URI || (typeof window !== 'undefined' ? `${window.location.origin.replace(/\/$/, '')}/auth/youtube/callback` : 'http://localhost:3000/auth/youtube/callback'),
   scope: [
     'https://www.googleapis.com/auth/youtube.readonly',
     'https://www.googleapis.com/auth/youtube.force-ssl',
