@@ -23,13 +23,14 @@ export async function POST(req: NextRequest) {
       categoryId = '22',
       tags = [],
       privacyStatus = 'private',
+      publishAt,
     } = body || {};
 
     if (!title) {
       return NextResponse.json({ error: 'title is required' }, { status: 400 });
     }
 
-    const metadata = {
+    const metadata: any = {
       snippet: {
         title,
         description: description || '',
@@ -40,6 +41,10 @@ export async function POST(req: NextRequest) {
         privacyStatus,
       },
     };
+
+    if (publishAt) {
+      metadata.status.publishAt = publishAt;
+    }
 
     // videos.insert resumable upload 초기화 요청
     const initUrl = 'https://www.googleapis.com/upload/youtube/v3/videos?uploadType=resumable&part=snippet,status';

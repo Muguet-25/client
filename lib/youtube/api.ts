@@ -270,7 +270,7 @@ export class YouTubeAPI {
       const videoIds = searchResponse.items.map(item => item.id.videoId).join(',');
       
       const videoParams = {
-        part: 'snippet,statistics,status',
+        part: 'snippet,statistics,status,contentDetails',
         id: videoIds,
       };
 
@@ -280,6 +280,9 @@ export class YouTubeAPI {
           snippet: YouTubeSnippet;
           statistics: YouTubeStatistics;
           status: YouTubeStatus;
+          contentDetails: {
+            duration: string;
+          };
         }>;
       }>(`${YOUTUBE_API_BASE}/videos`, videoParams);
 
@@ -293,6 +296,7 @@ export class YouTubeAPI {
         description: video.snippet.description,
         publishedAt: video.snippet.publishedAt,
         thumbnails: video.snippet.thumbnails,
+        duration: video.contentDetails?.duration || 'PT0S',
         statistics: {
           viewCount: video.statistics?.viewCount || '0',
           likeCount: video.statistics?.likeCount || '0',
@@ -398,9 +402,10 @@ export class YouTubeAPI {
         snippet: unknown;
         statistics: unknown;
         status: unknown;
+        contentDetails: unknown;
       }>;
     }>(`${YOUTUBE_API_BASE}/videos`, {
-      part: 'snippet,statistics,status',
+      part: 'snippet,statistics,status,contentDetails',
       id: videoId,
     });
 
@@ -414,6 +419,7 @@ export class YouTubeAPI {
       title: (video.snippet as { title: string }).title,
       description: (video.snippet as { description: string }).description,
       publishedAt: (video.snippet as { publishedAt: string }).publishedAt,
+      duration: (video.contentDetails as { duration: string })?.duration || 'PT0S',
       thumbnails: (video.snippet as { thumbnails: { default: { url: string; width: number; height: number }, medium: { url: string; width: number; height: number }, high: { url: string; width: number; height: number } } }).thumbnails,
       statistics: {
         viewCount: (video.statistics as { viewCount: string }).viewCount || '0',

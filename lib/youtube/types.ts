@@ -29,6 +29,7 @@ export interface YouTubeVideo {
   title: string;
   description: string;
   publishedAt: string;
+  duration: string; // ISO 8601 duration format (PT4M13S)
   thumbnails: {
     default: { url: string; width: number; height: number };
     medium: { url: string; width: number; height: number };

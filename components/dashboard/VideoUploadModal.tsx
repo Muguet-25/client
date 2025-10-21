@@ -13,6 +13,13 @@ interface VideoUploadModalProps {
 }
 
 export default function VideoUploadModal({ isOpen, onClose }: VideoUploadModalProps) {
+  const getTodayDateString = () => {
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+  };
   const [currentStep, setCurrentStep] = useState(1);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -23,6 +30,9 @@ export default function VideoUploadModal({ isOpen, onClose }: VideoUploadModalPr
   const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [progress, setProgress] = useState<number | null>(null);
+  const [scheduleEnabled, setScheduleEnabled] = useState(false);
+  const [scheduleDate, setScheduleDate] = useState(getTodayDateString()); // yyyy-mm-dd
+  const [scheduleTime, setScheduleTime] = useState(''); // HH:MM
 
   const getAccessToken = () => localStorage.getItem('youtube_access_token') || '';
 
@@ -37,6 +47,9 @@ export default function VideoUploadModal({ isOpen, onClose }: VideoUploadModalPr
     setThumbnailFile(null);
     setIsUploading(false);
     setProgress(null);
+    setScheduleEnabled(false);
+    setScheduleDate(getTodayDateString());
+    setScheduleTime('');
   };
 
   useEffect(() => {
@@ -287,30 +300,37 @@ export default function VideoUploadModal({ isOpen, onClose }: VideoUploadModalPr
 
               {/* 업로드 예약일 */}
               <div>
-                <label className="block text-[16px] text-[#f5f5f5]/60 mb-2">
-                  업로드 예약일
-                </label>
-                <div className="flex gap-3">
-                  <div className="bg-[#12121e] border border-[#3a3b50] rounded-[16px] px-6 py-4 flex items-center gap-2">
-                    <span className="text-[#f5f5f5]/60">2025년</span>
-                  </div>
-                  <div className="bg-[#12121e] border border-[#3a3b50] rounded-[16px] px-6 py-4 flex items-center gap-2">
-                    <span className="text-[#f5f5f5]/60">11월</span>
-                  </div>
-                  <div className="bg-[#12121e] border border-[#3a3b50] rounded-[16px] px-6 py-4 flex items-center gap-2">
-                    <span className="text-[#f5f5f5]/60">23일</span>
-                  </div>
-                  <div className="bg-[#12121e] border border-[#3a3b50] rounded-[16px] px-6 py-4 flex items-center gap-2">
-                    <span className="text-[#f5f5f5]/60">06시</span>
-                  </div>
-                  <div className="bg-[#12121e] border border-[#3a3b50] rounded-[16px] px-6 py-4 flex items-center gap-2">
-                    <span className="text-[#f5f5f5]/60">00분</span>
-                  </div>
-                  <div className="bg-[#12121e] border border-[#3a3b50] rounded-[16px] px-6 py-4 flex items-center gap-2">
-                    <span className="text-[#f5f5f5]/60">오후</span>
-                    <Sun className="w-5 h-5 text-[#ff8953]/50" />
-                  </div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="text-[16px] text-[#f5f5f5]/60">업로드 예약</label>
+                  <label className="flex items-center gap-2 text-[#f5f5f5]/70">
+                    <input
+                      type="checkbox"
+                      checked={scheduleEnabled}
+                      onChange={(e) => setScheduleEnabled(e.target.checked)}
+                    />
+                    사용
+                  </label>
                 </div>
+                {scheduleEnabled && (
+                  <div className="flex gap-3">
+                    <input
+                      type="date"
+                      value={scheduleDate}
+                      onChange={(e) => setScheduleDate(e.target.value)}
+                      min={getTodayDateString()}
+                      max={getTodayDateString()}
+                      disabled
+                      className="bg-[#12121e] border border-[#3a3b50] rounded-[16px] px-6 py-4 text-[#f5f5f5] focus:outline-none opacity-70 cursor-not-allowed"
+                    />
+                    <input
+                      type="time"
+                      value={scheduleTime}
+                      onChange={(e) => setScheduleTime(e.target.value)}
+                      className="bg-[#12121e] text-white border border-[#3a3b50] rounded-[16px] px-6 py-4 text-[#f5f5f5] focus:outline-none"
+                    />
+                   
+                  </div>
+                )}
               </div>
             </>
           )}
@@ -371,7 +391,10 @@ export default function VideoUploadModal({ isOpen, onClose }: VideoUploadModalPr
                         description,
                         categoryId: '22',
                         tags: tags.map(t => t.text),
-                        privacyStatus: privacy,
+                        privacyStatus: scheduleEnabled ? 'private' : privacy,
+                        publishAt: scheduleEnabled && scheduleDate && scheduleTime
+                          ? new Date(`${scheduleDate}T${scheduleTime}:00`).toISOString()
+                          : undefined,
                       }),
                     });
                     if (!startRes.ok) {
