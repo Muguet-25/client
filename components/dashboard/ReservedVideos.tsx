@@ -1,6 +1,9 @@
 'use client';
 
 import Image from 'next/image';
+import { useYouTube } from '@/hooks/useYouTube';
+import { YouTubeVideo } from '@/lib/youtube/types';
+import { useState, useEffect } from 'react';
 
 interface VideoItemProps {
   platform: 'youtube' | 'tiktok';
@@ -49,7 +52,7 @@ function VideoItem({
         <div className="relative w-[200px] h-[113px] flex-shrink-0">
           <div className="relative w-full h-full rounded-lg overflow-hidden">
             <Image
-              src="/img/고양이.jpg"
+              src={thumbnail}
               alt={title}
               fill
               className="object-cover"
@@ -57,7 +60,7 @@ function VideoItem({
           </div>
           {/* 재생 시간 */}
           <div className="absolute bottom-1 right-1 bg-black/60 rounded px-1 py-0.5">
-            <span className="text-[#f5f5f5] text-xs font-normal leading-[14px]">
+            <span className="text-[#f5f5f5] text-[10px] font-normal leading-[20px]">
               {duration}
             </span>
           </div>
@@ -103,43 +106,163 @@ function VideoItem({
   );
 }
 
-const mockVideos = [
-  {
+// YouTube 비디오를 ReservedVideos 형식으로 변환하는 함수
+const convertYouTubeVideoToReservedFormat = (video: YouTubeVideo) => {
+  // ISO 8601 duration을 MM:SS 형식으로 변환
+  const formatDuration = (isoDuration: string): string => {
+    // PT4M13S -> 4:13
+    const match = isoDuration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+    if (!match) return '0:00';
+    
+    const hours = parseInt(match[1] || '0');
+    const minutes = parseInt(match[2] || '0');
+    const seconds = parseInt(match[3] || '0');
+    
+    if (hours > 0) {
+      return `${hours}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    } else {
+      return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    }
+  };
+
+  // 공개 상태 한글 변환
+  const getVisibilityText = (privacyStatus: string) => {
+    switch (privacyStatus) {
+      case 'public': return '전체 공개';
+      case 'private': return '비공개';
+      case 'unlisted': return '링크로만 공개';
+      default: return '알 수 없음';
+    }
+  };
+
+  // 업로드 상태에 따른 제한사항
+  const getRestrictionText = (uploadStatus: string) => {
+    switch (uploadStatus) {
+      case 'processed': return '없음';
+      case 'uploaded': return '처리 중';
+      case 'failed': return '업로드 실패';
+      default: return '알 수 없음';
+    }
+  };
+
+  // 날짜 포맷팅 (YYYY.MM.DD.) - 한국 시간대 적용
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    // 한국 시간대 (UTC+9) 적용
+    const kstDate = new Date(date.getTime() + (9 * 60 * 60 * 1000));
+    const year = kstDate.getFullYear();
+    const month = String(kstDate.getMonth() + 1).padStart(2, '0');
+    const day = String(kstDate.getDate()).padStart(2, '0');
+    return `${year}.${month}.${day}.`;
+  };
+
+  // 시간 포맷팅 (오후/오전 HH:MM) - 한국 시간대 적용
+  const formatTime = (dateString: string) => {
+    const date = new Date(dateString);
+    // 한국 시간대 (UTC+9) 적용
+    const kstDate = new Date(date.getTime() + (9 * 60 * 60 * 1000));
+    const hours = kstDate.getHours();
+    const minutes = String(kstDate.getMinutes()).padStart(2, '0');
+    const period = hours >= 12 ? '오후' : '오전';
+    const displayHours = hours > 12 ? hours - 12 : (hours === 0 ? 12 : hours);
+    return `${period} ${displayHours}:${minutes}`;
+  };
+
+  return {
     platform: 'youtube' as const,
-    thumbnail: '/placeholder-video.jpg',
-    duration: '8:39',
-    title: '집사 Vlog | 고양이와 함께한 하루',
-    description: '설명 추가',
-    visibility: '전체 공개',
-    restriction: '없음',
-    scheduledDate: '2025.12.25.',
-    scheduledTime: '오후 6:00',
-  },
-  {
-    platform: 'youtube' as const,
-    thumbnail: '/placeholder-video.jpg',
-    duration: '8:39',
-    title: '집사 Vlog | 고양이와 함께한 하루',
-    description: '설명 추가',
-    visibility: '전체 공개',
-    restriction: '없음',
-    scheduledDate: '2025.12.25.',
-    scheduledTime: '오후 6:00',
-  },
-  {
-    platform: 'youtube' as const,
-    thumbnail: '/placeholder-video.jpg',
-    duration: '8:39',
-    title: '집사 Vlog | 고양이와 함께한 하루',
-    description: '설명 추가',
-    visibility: '전체 공개',
-    restriction: '없음',
-    scheduledDate: '2025.12.25.',
-    scheduledTime: '오후 6:00',
-  },
-];
+    thumbnail: video.thumbnails?.medium?.url || video.thumbnails?.default?.url || '/placeholder-video.jpg',
+    duration: formatDuration(video.duration || 'PT0S'),
+    title: video.title,
+    description: video.description || '설명 없음',
+    visibility: getVisibilityText(video.status?.privacyStatus || 'private'),
+    restriction: getRestrictionText(video.status?.uploadStatus || 'processed'),
+    scheduledDate: formatDate(video.publishedAt),
+    scheduledTime: formatTime(video.publishedAt),
+  };
+};
 
 export default function ReservedVideos() {
+  const { videos, isConnected, isLoading, error, refreshVideos } = useYouTube();
+  const [convertedVideos, setConvertedVideos] = useState<any[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const videosPerPage = 3;
+
+  // YouTube 비디오 데이터를 ReservedVideos 형식으로 변환
+  useEffect(() => {
+    if (videos && videos.length > 0) {
+      const converted = videos.map(convertYouTubeVideoToReservedFormat);
+      setConvertedVideos(converted);
+    } else {
+      setConvertedVideos([]);
+    }
+  }, [videos]);
+
+  // 컴포넌트 마운트 시 비디오 데이터 로드
+  useEffect(() => {
+    if (isConnected && videos.length === 0) {
+      refreshVideos();
+    }
+  }, [isConnected, videos.length, refreshVideos]);
+
+  // 페이지네이션 계산
+  const totalPages = Math.ceil(convertedVideos.length / videosPerPage);
+  const startIndex = (currentPage - 1) * videosPerPage;
+  const endIndex = startIndex + videosPerPage;
+  const currentVideos = convertedVideos.slice(startIndex, endIndex);
+
+  // 페이지 변경 핸들러
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  // 로딩 상태
+  if (isLoading) {
+    return (
+      <div className="w-full mx-auto mt-24">
+        <div className="mb-8">
+          <h1 className="text-[#f5f5f5] text-[48px] font-bold leading-[54px]">
+            예약된 동영상
+          </h1>
+        </div>
+        <div className="flex items-center justify-center py-12">
+          <div className="text-[#f5f5f5] text-lg">동영상 목록을 불러오는 중...</div>
+        </div>
+      </div>
+    );
+  }
+
+  // 에러 상태
+  if (error) {
+    return (
+      <div className="w-full mx-auto mt-24">
+        <div className="mb-8">
+          <h1 className="text-[#f5f5f5] text-[48px] font-bold leading-[54px]">
+            예약된 동영상
+          </h1>
+        </div>
+        <div className="flex items-center justify-center py-12">
+          <div className="text-red-400 text-lg">오류: {error}</div>
+        </div>
+      </div>
+    );
+  }
+
+  // 연결되지 않은 상태
+  if (!isConnected) {
+    return (
+      <div className="w-full mx-auto mt-24">
+        <div className="mb-8">
+          <h1 className="text-[#f5f5f5] text-[48px] font-bold leading-[54px]">
+            예약된 동영상
+          </h1>
+        </div>
+        <div className="flex items-center justify-center py-12">
+          <div className="text-[#aaaaaa] text-lg">YouTube에 연결되어 있지 않습니다.</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="w-full mx-auto mt-24">
       {/* 제목 */}
@@ -173,23 +296,35 @@ export default function ReservedVideos() {
 
         {/* 테이블 바디 */}
         <div>
-          {mockVideos.map((video, index) => (
-            <VideoItem key={index} {...video} />
-          ))}
+          {currentVideos.length > 0 ? (
+            currentVideos.map((video, index) => (
+              <VideoItem key={index} {...video} />
+            ))
+          ) : (
+            <div className="flex items-center justify-center py-12">
+              <div className="text-[#aaaaaa] text-lg">동영상이 없습니다.</div>
+            </div>
+          )}
         </div>
 
         {/* 페이지네이션 */}
-        <div className="flex justify-center items-center gap-2 mt-8">
-          <button className="w-11 h-11 flex items-center justify-center bg-[#1c1c28] border border-[#3a3b50] rounded text-[#ff8953] text-lg font-medium leading-5">
-            1
-          </button>
-          <button className="w-11 h-11 flex items-center justify-center text-white text-lg font-medium leading-5 hover:bg-[#1c1c28] hover:border hover:border-[#3a3b50] rounded transition-colors">
-            2
-          </button>
-          <button className="w-11 h-11 flex items-center justify-center text-white text-lg font-medium leading-5 hover:bg-[#1c1c28] hover:border hover:border-[#3a3b50] rounded transition-colors">
-            3
-          </button>
-        </div>
+        {convertedVideos.length > 0 && (
+          <div className="flex justify-center items-center gap-2 mt-8">
+            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+              <button
+                key={page}
+                onClick={() => handlePageChange(page)}
+                className={`w-11 h-11 flex items-center justify-center rounded text-lg font-medium leading-5 transition-colors ${
+                  currentPage === page
+                    ? 'bg-[#1c1c28] border border-[#3a3b50] text-[#ff8953]'
+                    : 'text-white hover:bg-[#1c1c28] hover:border hover:border-[#3a3b50]'
+                }`}
+              >
+                {page}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

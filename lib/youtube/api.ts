@@ -52,69 +52,107 @@ interface YouTubeBrandingSettings {
 
 export class YouTubeAPI {
   private accessToken: string;
+  private cache: Map<string, { data: any; timestamp: number }> = new Map();
+  private readonly CACHE_DURATION = 5 * 60 * 1000; // 5분 캐시
 
   constructor(accessToken: string) {
     this.accessToken = accessToken;
   }
 
+  // 캐시에서 데이터 가져오기
+  private getFromCache<T>(key: string): T | null {
+    const cached = this.cache.get(key);
+    if (cached && Date.now() - cached.timestamp < this.CACHE_DURATION) {
+      return cached.data as T;
+    }
+    this.cache.delete(key);
+    return null;
+  }
+
+  // 캐시에 데이터 저장
+  private setCache<T>(key: string, data: T): void {
+    this.cache.set(key, {
+      data,
+      timestamp: Date.now()
+    });
+  }
+
+  // 캐시 클리어
+  public clearCache(): void {
+    this.cache.clear();
+  }
+
   private async makeRequest<T>(url: string, params: Record<string, string> = {}): Promise<T> {
     const searchParams = new URLSearchParams(params);
 
-    const response = await fetch(`${url}?${searchParams}`, {
-      headers: {
-        'Authorization': `Bearer ${this.accessToken}`,
-        'Accept': 'application/json',
-      },
-    });
+    try {
+      const response = await fetch(`${url}?${searchParams}`, {
+        headers: {
+          'Authorization': `Bearer ${this.accessToken}`,
+          'Accept': 'application/json',
+        },
+      });
 
-    if (!response.ok) {
-      if (response.status === 401) {
-        try {
-          // 토큰이 만료된 경우 갱신 시도
-          await this.refreshToken();
-          // 갱신된 토큰으로 재시도
-          const retryResponse = await fetch(`${url}?${searchParams}`, {
-            headers: {
-              'Authorization': `Bearer ${this.accessToken}`,
-              'Accept': 'application/json',
-            },
-          });
-          
-          if (!retryResponse.ok) {
-            const errorText = await retryResponse.text();
-            console.error('YouTube API 재시도 실패:', {
-              status: retryResponse.status,
-              statusText: retryResponse.statusText,
-              error: errorText
+      if (!response.ok) {
+        if (response.status === 401) {
+          try {
+            // 토큰이 만료된 경우 갱신 시도
+            await this.refreshToken();
+            // 갱신된 토큰으로 재시도
+            const retryResponse = await fetch(`${url}?${searchParams}`, {
+              headers: {
+                'Authorization': `Bearer ${this.accessToken}`,
+                'Accept': 'application/json',
+              },
             });
-            throw new Error(`YouTube API 재시도 실패 (${retryResponse.status}): ${errorText}`);
+            
+            if (!retryResponse.ok) {
+              const errorText = await retryResponse.text();
+              console.error('YouTube API 재시도 실패:', {
+                status: retryResponse.status,
+                statusText: retryResponse.statusText,
+                error: errorText
+              });
+              throw new Error(`YouTube API 재시도 실패 (${retryResponse.status}): ${errorText}`);
+            }
+            
+            return retryResponse.json();
+          } catch (refreshError) {
+            console.error('토큰 갱신 실패:', refreshError);
+            throw new Error('인증이 만료되었습니다. 다시 로그인해주세요.');
           }
-          
-          return retryResponse.json();
-        } catch (refreshError) {
-          console.error('토큰 갱신 실패:', refreshError);
-          throw new Error('인증이 만료되었습니다. 다시 로그인해주세요.');
+        }
+        
+        // 할당량 초과 처리
+        if (response.status === 403) {
+          const errorData = await response.json().catch(() => ({}));
+          if (errorData.error?.errors?.[0]?.reason === 'quotaExceeded') {
+            throw new Error('YouTube API 할당량이 초과되었습니다. 잠시 후 다시 시도해주세요.');
+          }
+        }
+        
+        const errorText = await response.text();
+        console.error('YouTube API 오류:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorText,
+          url: url,
+          params: params
+        });
+        
+        try {
+          const error: YouTubeError = JSON.parse(errorText);
+          throw new Error(`YouTube API Error: ${error.error?.message || errorText}`);
+        } catch {
+          throw new Error(`YouTube API Error (${response.status}): ${errorText}`);
         }
       }
-      
-      const errorText = await response.text();
-      console.error('YouTube API 오류:', {
-        status: response.status,
-        statusText: response.statusText,
-        error: errorText,
-        url: url,
-        params: params
-      });
-      
-      try {
-        const error: YouTubeError = JSON.parse(errorText);
-        throw new Error(`YouTube API Error: ${error.error?.message || errorText}`);
-      } catch {
-        throw new Error(`YouTube API Error (${response.status}): ${errorText}`);
-      }
-    }
 
-    return response.json();
+      return response.json();
+    } catch (error) {
+      console.error('YouTube API 요청 실패:', error);
+      throw error;
+    }
   }
 
   // 토큰 갱신 (서버 API 사용)
@@ -195,8 +233,17 @@ export class YouTubeAPI {
     };
   }
 
-  // 비디오 목록 가져오기 (2단계 과정)
+  // 비디오 목록 가져오기 (캐싱 적용)
   async getVideos(channelId?: string, maxResults: number = 10): Promise<YouTubeVideo[]> {
+    const cacheKey = `videos_${maxResults}`;
+    
+    // 캐시에서 데이터 확인
+    const cachedData = this.getFromCache<YouTubeVideo[]>(cacheKey);
+    if (cachedData) {
+      console.log('캐시에서 비디오 데이터 로드');
+      return cachedData;
+    }
+
     try {
       // 1단계: /search API로 비디오 ID 목록 가져오기
       const searchParams = {
@@ -219,11 +266,11 @@ export class YouTubeAPI {
         return [];
       }
 
-      // 2단계: 비디오 ID들을 콤마로 구분하여 /videos API로 상세 정보 가져오기
+      // 2단계: videos().list 메서드 사용하여 통계 정보 가져오기
       const videoIds = searchResponse.items.map(item => item.id.videoId).join(',');
       
       const videoParams = {
-        part: 'snippet,statistics,status',
+        part: 'snippet,statistics,status,contentDetails',
         id: videoIds,
       };
 
@@ -233,6 +280,9 @@ export class YouTubeAPI {
           snippet: YouTubeSnippet;
           statistics: YouTubeStatistics;
           status: YouTubeStatus;
+          contentDetails: {
+            duration: string;
+          };
         }>;
       }>(`${YOUTUBE_API_BASE}/videos`, videoParams);
 
@@ -240,12 +290,13 @@ export class YouTubeAPI {
         return [];
       }
 
-      return videoResponse.items.map(video => ({
+      const videos = videoResponse.items.map(video => ({
         id: video.id,
         title: video.snippet.title,
         description: video.snippet.description,
         publishedAt: video.snippet.publishedAt,
         thumbnails: video.snippet.thumbnails,
+        duration: video.contentDetails?.duration || 'PT0S',
         statistics: {
           viewCount: video.statistics?.viewCount || '0',
           likeCount: video.statistics?.likeCount || '0',
@@ -262,9 +313,83 @@ export class YouTubeAPI {
           tags: video.snippet.tags || [],
         },
       }));
+
+      // 캐시에 저장
+      this.setCache(cacheKey, videos);
+      console.log('비디오 데이터를 캐시에 저장');
+
+      return videos;
     } catch (error) {
       console.error('비디오 목록 가져오기 실패:', error);
       // 할당량 초과 시 빈 배열 반환
+      return [];
+    }
+  }
+
+  // 특정 비디오의 통계 정보만 가져오기 (최적화된 버전)
+  async getVideoStatistics(videoId: string): Promise<{ viewCount: number; likeCount: number; commentCount: number }> {
+    try {
+      const response = await this.makeRequest<{
+        items: Array<{
+          id: string;
+          statistics: YouTubeStatistics;
+        }>;
+      }>(`${YOUTUBE_API_BASE}/videos`, {
+        part: 'statistics',
+        id: videoId,
+      });
+
+      if (!response.items || response.items.length === 0) {
+        throw new Error('비디오를 찾을 수 없습니다.');
+      }
+
+      const stats = response.items[0].statistics;
+      return {
+        viewCount: parseInt(stats.viewCount || '0'),
+        likeCount: parseInt(stats.likeCount || '0'),
+        commentCount: parseInt(stats.commentCount || '0'),
+      };
+    } catch (error) {
+      console.error('비디오 통계 가져오기 실패:', error);
+      return { viewCount: 0, likeCount: 0, commentCount: 0 };
+    }
+  }
+
+  // 여러 비디오의 통계 정보를 한 번에 가져오기 (배치 처리)
+  async getMultipleVideoStatistics(videoIds: string[]): Promise<Array<{ id: string; viewCount: number; likeCount: number; commentCount: number }>> {
+    try {
+      // YouTube API는 최대 50개 비디오까지 한 번에 처리 가능
+      const batchSize = 50;
+      const results: Array<{ id: string; viewCount: number; likeCount: number; commentCount: number }> = [];
+
+      for (let i = 0; i < videoIds.length; i += batchSize) {
+        const batch = videoIds.slice(i, i + batchSize);
+        const videoIdsString = batch.join(',');
+
+        const response = await this.makeRequest<{
+          items: Array<{
+            id: string;
+            statistics: YouTubeStatistics;
+          }>;
+        }>(`${YOUTUBE_API_BASE}/videos`, {
+          part: 'statistics',
+          id: videoIdsString,
+        });
+
+        if (response.items) {
+          const batchResults = response.items.map(video => ({
+            id: video.id,
+            viewCount: parseInt(video.statistics.viewCount || '0'),
+            likeCount: parseInt(video.statistics.likeCount || '0'),
+            commentCount: parseInt(video.statistics.commentCount || '0'),
+          }));
+          results.push(...batchResults);
+        }
+      }
+
+      return results;
+    } catch (error) {
+      console.error('다중 비디오 통계 가져오기 실패:', error);
       return [];
     }
   }
@@ -277,9 +402,10 @@ export class YouTubeAPI {
         snippet: unknown;
         statistics: unknown;
         status: unknown;
+        contentDetails: unknown;
       }>;
     }>(`${YOUTUBE_API_BASE}/videos`, {
-      part: 'snippet,statistics,status',
+      part: 'snippet,statistics,status,contentDetails',
       id: videoId,
     });
 
@@ -293,6 +419,7 @@ export class YouTubeAPI {
       title: (video.snippet as { title: string }).title,
       description: (video.snippet as { description: string }).description,
       publishedAt: (video.snippet as { publishedAt: string }).publishedAt,
+      duration: (video.contentDetails as { duration: string })?.duration || 'PT0S',
       thumbnails: (video.snippet as { thumbnails: { default: { url: string; width: number; height: number }, medium: { url: string; width: number; height: number }, high: { url: string; width: number; height: number } } }).thumbnails,
       statistics: {
         viewCount: (video.statistics as { viewCount: string }).viewCount || '0',

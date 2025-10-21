@@ -141,3 +141,67 @@ body {
 .animate-fade-in-up {
   animation: fade-in-up 0.6s ease-out;
 }
+
+/* React Tags Input 스타일 */
+.tags-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tag-input {
+  width: 100%;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.tag-input-field {
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #f5f5f5;
+  width: 100%;
+  min-width: 300px;
+  flex: 1;
+  padding: 4px 0;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.tag-input-field::placeholder {
+  color: rgba(245, 245, 245, 0.6);
+}
+
+.tag-selected {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+}
+
+.tag {
+  background: #26273c;
+  color: #f5f5f5;
+  border: 1px solid #3a3b50;
+  border-radius: 8px;
+  padding: 4px 12px;
+  margin-right: 8px;
+  margin-bottom: 8px;
+  display: inline-flex;
+  align-items: center;
+  font-size: 14px;
+}
+
+.tag-remove {
+  color: rgba(245, 245, 245, 0.6);
+  margin-left: 8px;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.tag-remove:hover {
+  color: #f5f5f5;
+}
