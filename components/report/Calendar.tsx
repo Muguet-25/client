@@ -9,13 +9,16 @@ interface CalendarEvent {
   thumbnail?: string;
   views?: number;
   duration?: string;
+  likes?: number;
+  publishedAt: string;
 }
 
 interface CalendarProps {
   events?: CalendarEvent[];
+  onVideoClick?: (video: CalendarEvent) => void;
 }
 
-export default function Calendar({ events = [] }: CalendarProps) {
+export default function Calendar({ events = [], onVideoClick }: CalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   
   const monthNames = [
@@ -174,7 +177,8 @@ export default function Calendar({ events = [] }: CalendarProps) {
                     {dayEvents.slice(0, 3).map((event, eventIndex) => (
                       <div
                         key={event.id}
-                        className="relative group"
+                        className="relative group cursor-pointer"
+                        onClick={() => onVideoClick?.(event)}
                       >
                         {event.thumbnail ? (
                           <div className="relative">

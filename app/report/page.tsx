@@ -3,6 +3,7 @@
 import DashboardNavigation from '@/components/dashboard/Navigation';
 import ReportHeader from '@/components/report/ReportHeader';
 import Calendar from '@/components/report/Calendar';
+import VideoDetailModal from '@/components/report/VideoDetailModal';
 import { useYouTube } from '@/hooks/useYouTube';
 import { useEffect, useState } from 'react';
 
@@ -13,11 +14,15 @@ interface CalendarEvent {
   thumbnail?: string;
   views?: number;
   duration?: string;
+  likes?: number;
+  publishedAt: string;
 }
 
 export default function ReportPage() {
   const { isConnected, videos, isLoading, error } = useYouTube();
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
+  const [selectedVideo, setSelectedVideo] = useState<CalendarEvent | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // YouTube 동영상 데이터를 달력 이벤트 형식으로 변환
   useEffect(() => {
@@ -28,11 +33,23 @@ export default function ReportPage() {
         date: new Date(video.publishedAt),
         thumbnail: video.thumbnails?.medium?.url || video.thumbnails?.default?.url,
         views: parseInt(video.statistics.viewCount),
-        duration: video.duration
+        likes: parseInt(video.statistics.likeCount),
+        duration: video.duration,
+        publishedAt: video.publishedAt
       }));
       setCalendarEvents(events);
     }
   }, [videos]);
+
+  const handleVideoClick = (video: CalendarEvent) => {
+    setSelectedVideo(video);
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedVideo(null);
+  };
 
   return (
     <div className="min-h-screen bg-[#12121E] relative">
@@ -67,8 +84,15 @@ export default function ReportPage() {
           </div>
         </div>
       ) : (
-        <Calendar events={calendarEvents} />
+        <Calendar events={calendarEvents} onVideoClick={handleVideoClick} />
       )}
+
+      {/* 영상 세부정보 모달 */}
+      <VideoDetailModal
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+        video={selectedVideo}
+      />
     </div>
   );
 }
