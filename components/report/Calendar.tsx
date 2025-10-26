@@ -114,12 +114,7 @@ export default function Calendar({ events = [] }: CalendarProps) {
               </svg>
             </button>
             
-            <button
-              onClick={goToToday}
-              className="px-4 py-2 border border-[#3a3b50] rounded-lg text-[#f5f5f5] text-sm hover:bg-[#3a3b50] transition-colors"
-            >
-              오늘
-            </button>
+          
             
             <button
               onClick={() => navigateMonth('next')}
@@ -160,7 +155,7 @@ export default function Calendar({ events = [] }: CalendarProps) {
                 className={`min-h-[112px] p-2 border-r border-b border-[#3a3b50] last:border-r-0 ${
                   day.isCurrentMonth 
                     ? day.isToday 
-                      ? 'bg-[#26273c]' 
+                      ? 'bg-[#26273c] border-2 border-white' 
                       : 'bg-[#1c1c28]'
                     : 'bg-[#26273c]'
                 }`}
