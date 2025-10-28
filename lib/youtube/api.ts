@@ -53,33 +53,84 @@ interface YouTubeBrandingSettings {
 export class YouTubeAPI {
   private accessToken: string;
   private cache: Map<string, { data: any; timestamp: number }> = new Map();
-  private readonly CACHE_DURATION = 5 * 60 * 1000; // 5분 캐시
+  private readonly CACHE_DURATION = 30 * 60 * 1000; // 30분 캐시 (할당량 절약)
+  private readonly CHANNEL_CACHE_DURATION = 60 * 60 * 1000; // 채널 정보는 1시간 캐시
+  private readonly VIDEOS_CACHE_DURATION = 15 * 60 * 1000; // 비디오 목록은 15분 캐시
+  private readonly PERSISTENT_CACHE_PREFIX = 'youtube_cache_';
 
   constructor(accessToken: string) {
     this.accessToken = accessToken;
+    this.loadPersistentCache();
   }
 
-  // 캐시에서 데이터 가져오기
-  private getFromCache<T>(key: string): T | null {
+  // 영구 캐시 로드 (localStorage에서)
+  private loadPersistentCache(): void {
+    try {
+      const keys = Object.keys(localStorage).filter(key => key.startsWith(this.PERSISTENT_CACHE_PREFIX));
+      keys.forEach(key => {
+        const data = localStorage.getItem(key);
+        if (data) {
+          const parsed = JSON.parse(data);
+          this.cache.set(key.replace(this.PERSISTENT_CACHE_PREFIX, ''), parsed);
+        }
+      });
+      console.log(`영구 캐시 로드 완료: ${keys.length}개 항목`);
+    } catch (error) {
+      console.error('영구 캐시 로드 실패:', error);
+    }
+  }
+
+  // 영구 캐시 저장 (localStorage에)
+  private saveToPersistentCache(key: string, data: any): void {
+    try {
+      const persistentKey = this.PERSISTENT_CACHE_PREFIX + key;
+      localStorage.setItem(persistentKey, JSON.stringify(data));
+    } catch (error) {
+      console.error('영구 캐시 저장 실패:', error);
+    }
+  }
+
+  // 캐시에서 데이터 가져오기 (커스텀 캐시 시간 지원)
+  private getFromCache<T>(key: string, customDuration?: number): T | null {
     const cached = this.cache.get(key);
-    if (cached && Date.now() - cached.timestamp < this.CACHE_DURATION) {
+    const duration = customDuration || this.CACHE_DURATION;
+    
+    if (cached && Date.now() - cached.timestamp < duration) {
+      console.log(`캐시에서 데이터 로드: ${key}`);
       return cached.data as T;
     }
-    this.cache.delete(key);
+    
+    if (cached) {
+      console.log(`캐시 만료: ${key}`);
+      this.cache.delete(key);
+    }
+    
     return null;
   }
 
-  // 캐시에 데이터 저장
+  // 캐시에 데이터 저장 (영구 캐시도 함께 저장)
   private setCache<T>(key: string, data: T): void {
-    this.cache.set(key, {
+    const cacheData = {
       data,
       timestamp: Date.now()
-    });
+    };
+    
+    this.cache.set(key, cacheData);
+    this.saveToPersistentCache(key, cacheData);
   }
 
-  // 캐시 클리어
+  // 캐시 클리어 (영구 캐시도 함께 클리어)
   public clearCache(): void {
     this.cache.clear();
+    
+    // localStorage에서도 캐시 제거
+    try {
+      const keys = Object.keys(localStorage).filter(key => key.startsWith(this.PERSISTENT_CACHE_PREFIX));
+      keys.forEach(key => localStorage.removeItem(key));
+      console.log('영구 캐시 클리어 완료');
+    } catch (error) {
+      console.error('영구 캐시 클리어 실패:', error);
+    }
   }
 
   private async makeRequest<T>(url: string, params: Record<string, string> = {}): Promise<T> {
@@ -189,8 +240,16 @@ export class YouTubeAPI {
     }
   }
 
-  // 채널 정보 가져오기
+  // 채널 정보 가져오기 (1시간 캐시)
   async getChannelInfo(channelId?: string): Promise<YouTubeChannel> {
+    const cacheKey = `channel_${channelId || 'mine'}`;
+    
+    // 캐시에서 데이터 확인
+    const cachedData = this.getFromCache<YouTubeChannel>(cacheKey, this.CHANNEL_CACHE_DURATION);
+    if (cachedData) {
+      return cachedData;
+    }
+
     const params = {
       part: 'snippet,statistics,brandingSettings',
       mine: channelId ? 'false' : 'true',
@@ -211,7 +270,7 @@ export class YouTubeAPI {
     }
 
     const channel = response.items[0];
-    return {
+    const channelData = {
       id: channel.id,
       title: channel.snippet.title,
       description: channel.snippet.description,
@@ -231,16 +290,21 @@ export class YouTubeAPI {
         },
       },
     };
+
+    // 캐시에 저장
+    this.setCache(cacheKey, channelData);
+    console.log('채널 데이터를 캐시에 저장');
+    
+    return channelData;
   }
 
-  // 비디오 목록 가져오기 (캐싱 적용)
+  // 비디오 목록 가져오기 (15분 캐시)
   async getVideos(channelId?: string, maxResults: number = 10): Promise<YouTubeVideo[]> {
     const cacheKey = `videos_${maxResults}`;
     
     // 캐시에서 데이터 확인
-    const cachedData = this.getFromCache<YouTubeVideo[]>(cacheKey);
+    const cachedData = this.getFromCache<YouTubeVideo[]>(cacheKey, this.VIDEOS_CACHE_DURATION);
     if (cachedData) {
-      console.log('캐시에서 비디오 데이터 로드');
       return cachedData;
     }
 
