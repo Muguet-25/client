@@ -10,6 +10,7 @@ import { useAuthStore } from '@/lib/useAuthStore';
 import { useAverageViews } from '@/hooks/useAverageViews';
 import { useYouTube } from '@/hooks/useYouTube';
 import { Upload } from 'lucide-react';
+import { exportCurrentPageAsPdf } from '@/lib/exportPdf';
 
 export default function Dashboard() {
   const { user } = useAuthStore();
@@ -71,7 +72,10 @@ export default function Dashboard() {
             <p className="text-white text-sm">어서오세요 {user?.user_metadata?.full_name || '사용자'}님! 돌아오신걸 환영해요!</p>
           </div>
           
-          <button className="flex mt-4 items-center gap-2 px-4 py-2 bg-[#ff8953]/40 border border-[#ff8953]/40 rounded-lg text-[#ff8953] text-sm hover:bg-[#ff8953]/60 transition-colors">
+          <button
+            onClick={() => exportCurrentPageAsPdf('dashboard.pdf')}
+            className="flex mt-4 items-center gap-2 px-4 py-2 bg-[#ff8953]/40 border border-[#ff8953]/40 rounded-lg text-[#ff8953] text-sm hover:bg-[#ff8953]/60 transition-colors"
+          >
             <Upload className="w-4 h-4" />
             내보내기
           </button>
