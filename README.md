@@ -1,4 +1,4 @@
-# 🎯 Muguet - AI 마케팅 플랫폼
+# Muguet - AI 마케팅 플랫폼
 
 > 1인 크리에이터를 위한 AI 기반 마케팅 자동화 플랫폼
 
@@ -7,7 +7,7 @@
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.0-38B2AC?style=for-the-badge&logo=tailwind-css)
 ![Bun](https://img.shields.io/badge/Bun-1.0-000000?style=for-the-badge&logo=bun)
 
-## 📋 목차
+## 목차
 
 - [프로젝트 소개](#프로젝트-소개)
 - [주요 기능](#주요-기능)
