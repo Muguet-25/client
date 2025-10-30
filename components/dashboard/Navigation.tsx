@@ -1,21 +1,21 @@
 'use client';
 
+import { usePathname } from 'next/navigation';
 import { supabase } from '@/utils/config';
 
 interface NavigationItem {
   name: string;
   href: string;
-  active?: boolean;
 }
 
 const navigationItems: NavigationItem[] = [
-  { name: '대시보드', href: '/dashboard', active: true },
-  { name: '포스팅 추천', href: '/posts', active: false },
-  { name: '분석하기', href: '/analytics', active: false },
-  { name: '시청 개요', href: '/youtube', active: false }
+  { name: '대시보드', href: '/dashboard' },
+  { name: '리포트', href: '/report' },
+  { name: '로드맵', href: '/roadmap' }
 ];
 
 export default function DashboardNavigation() {
+  const pathname = usePathname();
   const handleLogout = async () => {
     try {
       // YouTube 토큰 삭제
@@ -40,19 +40,22 @@ export default function DashboardNavigation() {
         <div className="flex items-center justify-center relative">
           {/* 네비게이션 메뉴 - 중앙 정렬 */}
           <div className="flex items-center space-x-8">
-            {navigationItems.map((item) => (
-              <a
-                key={item.name}
-                href={item.href}
-                className={`text-lg font-normal transition-colors ${
-                  item.active 
-                    ? 'text-[#ff8953]' 
-                    : 'text-white hover:text-[#ff8953]'
-                }`}
-              >
-                {item.name}
-              </a>
-            ))}
+            {navigationItems.map((item) => {
+              const isActive = pathname === item.href;
+              return (
+                <a
+                  key={item.name}
+                  href={item.href}
+                  className={`text-lg font-normal transition-colors ${
+                    isActive 
+                      ? 'text-[#ff8953]' 
+                      : 'text-white hover:text-[#ff8953]'
+                  }`}
+                >
+                  {item.name}
+                </a>
+              );
+            })}
           </div>
           
           {/* 로그아웃 버튼 - 절대 위치로 우측 고정 */}

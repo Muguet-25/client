@@ -50,6 +50,10 @@ export const useYouTube = (): UseYouTubeReturn => {
   const [analytics, setAnalytics] = useState<YouTubeAnalytics | null>(null);
   const [dailyData, setDailyData] = useState<YouTubeAnalyticsData[]>([]);
   const [api, setApi] = useState<YouTubeAPI | null>(null);
+  
+  // 중복 요청 방지를 위한 플래그들
+  const [isLoadingChannel, setIsLoadingChannel] = useState(false);
+  const [isLoadingVideos, setIsLoadingVideos] = useState(false);
 
   // YouTube 연결 상태 확인
   useEffect(() => {
@@ -138,37 +142,43 @@ export const useYouTube = (): UseYouTubeReturn => {
     setDailyData([]);
   }, []);
 
-  // 채널 정보 새로고침
+  // 채널 정보 새로고침 (중복 요청 방지)
   const refreshChannel = useCallback(async () => {
-    if (!api) return;
+    if (!api || isLoadingChannel) return;
 
     try {
-      setIsLoading(true);
+      setIsLoadingChannel(true);
       setError(null);
+      console.log('채널 정보 요청 중...');
       const channelData = await api.getChannelInfo();
       setChannel(channelData);
+      console.log('채널 정보 로드 완료');
     } catch (err) {
+      console.error('채널 정보 로드 실패:', err);
       setError(err instanceof Error ? err.message : '채널 정보를 가져오는데 실패했습니다.');
     } finally {
-      setIsLoading(false);
+      setIsLoadingChannel(false);
     }
-  }, [api]);
+  }, [api, isLoadingChannel]);
 
-  // 비디오 목록 새로고침
+  // 비디오 목록 새로고침 (중복 요청 방지)
   const refreshVideos = useCallback(async () => {
-    if (!api) return;
+    if (!api || isLoadingVideos) return;
 
     try {
-      setIsLoading(true);
+      setIsLoadingVideos(true);
       setError(null);
+      console.log('비디오 목록 요청 중...');
       const videosData = await api.getVideos();
       setVideos(videosData);
+      console.log('비디오 목록 로드 완료');
     } catch (err) {
+      console.error('비디오 목록 로드 실패:', err);
       setError(err instanceof Error ? err.message : '비디오 목록을 가져오는데 실패했습니다.');
     } finally {
-      setIsLoading(false);
+      setIsLoadingVideos(false);
     }
-  }, [api]);
+  }, [api, isLoadingVideos]);
 
   // 분석 데이터 새로고침
   const refreshAnalytics = useCallback(async (startDate: string, endDate: string) => {
@@ -222,21 +232,21 @@ export const useYouTube = (): UseYouTubeReturn => {
   const [hasTriedChannel, setHasTriedChannel] = useState(false);
   const [hasTriedVideos, setHasTriedVideos] = useState(false);
 
-  // 연결 시 자동으로 채널 정보 로드 (한 번만)
+  // 연결 시 자동으로 채널 정보 로드 (한 번만, 중복 방지)
   useEffect(() => {
-    if (isConnected && api && !channel && !hasTriedChannel) {
+    if (isConnected && api && !channel && !hasTriedChannel && !isLoadingChannel) {
       setHasTriedChannel(true);
       refreshChannel();
     }
-  }, [isConnected, api, channel, hasTriedChannel, refreshChannel]);
+  }, [isConnected, api, channel, hasTriedChannel, isLoadingChannel, refreshChannel]);
 
-  // 채널 정보가 로드되면 비디오도 자동으로 로드 (한 번만)
+  // 채널 정보가 로드되면 비디오도 자동으로 로드 (한 번만, 중복 방지)
   useEffect(() => {
-    if (isConnected && api && channel && videos.length === 0 && !hasTriedVideos) {
+    if (isConnected && api && channel && videos.length === 0 && !hasTriedVideos && !isLoadingVideos) {
       setHasTriedVideos(true);
       refreshVideos();
     }
-  }, [isConnected, api, channel, videos.length, hasTriedVideos, refreshVideos]);
+  }, [isConnected, api, channel, videos.length, hasTriedVideos, isLoadingVideos, refreshVideos]);
 
   return {
     isConnected,
