@@ -233,7 +233,7 @@ test: 테스트 추가
 chore: 빌드 설정 변경
 ```
 
-## 📞 문의
+## 문의
 
 - **이메일**: thisisteam.calyx@gmail.com
 - **웹사이트**: https://muguet.vercel.app
