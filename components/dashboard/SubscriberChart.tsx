@@ -3,25 +3,77 @@
 import { ResponsiveLine } from "@nivo/line";
 import { linearGradientDef } from "@nivo/core";
 
-const data = [
-  {
-    id: "구독자 수",
-    data: [
-      { x: "2025-05", y: 100000 },
-      { x: "2025-06", y: 194069 },
-      { x: "2025-07", y: 180000 },
-      { x: "2025-08", y: 210000 },
-      { x: "2025-09", y: 230000 },
-      { x: "2025-10", y: 251012 },
-    ],
-  },
-];
+interface SubscriberChartProps {
+  subscriberCount?: number;
+}
 
-const minValue = Math.min(
-  ...data[0].data.map((d) => d.y)  // 모든 y 값 중 최소
-);
+export default function SubscriberChart({ subscriberCount = 0 }: SubscriberChartProps) {
+  // 서비스 시작일: 2025년 11월
+  const serviceStartYear = 2025;
+  const serviceStartMonth = 11; // 11월
+  
+  // 현재 날짜
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1; // 1-12
+  
+  // 서비스 시작일부터 현재까지의 개월 수 계산
+  const monthsSinceStart = (currentYear - serviceStartYear) * 12 + (currentMonth - serviceStartMonth) + 1;
+  
+  // 월 레이블 생성 함수
+  const generateMonthLabel = (monthOffset: number): string => {
+    let year = serviceStartYear;
+    let month = serviceStartMonth + monthOffset;
+    
+    // 년도 조정
+    while (month > 12) {
+      month -= 12;
+      year += 1;
+    }
+    while (month < 1) {
+      month += 12;
+      year -= 1;
+    }
+    
+    return `${year}-${String(month).padStart(2, '0')}`;
+  };
 
-export default function SubscriberChart() {
+  // 서비스 시작일(11월)부터 현재까지의 데이터 생성
+  const dataPoints = [];
+  for (let i = 0; i < monthsSinceStart; i++) {
+    const monthLabel = generateMonthLabel(i);
+    
+    // 첫 달(11월)은 초기 구독자 수로 시작, 이후 점진적 증가
+    let estimatedCount;
+    if (i === 0) {
+      estimatedCount = Math.max(0, subscriberCount - (subscriberCount * 0.8)); // 첫 달은 20% 수준
+    } else {
+      // 선형 증가 추정
+      const progress = i / (monthsSinceStart - 1);
+      estimatedCount = Math.max(0, Math.round(subscriberCount * (0.2 + progress * 0.8)));
+    }
+    
+    dataPoints.push({ x: monthLabel, y: estimatedCount });
+  }
+  
+  // 마지막 데이터는 현재 구독자 수로 설정
+  if (dataPoints.length > 0) {
+    dataPoints[dataPoints.length - 1].y = subscriberCount;
+  }
+
+  const data = [
+    {
+      id: "구독자 수",
+      data: dataPoints,
+    },
+  ];
+
+  const minValue = data[0]?.data.length > 0
+    ? Math.min(...data[0].data.map((d) => d.y))
+    : 0;
+
+  const formattedCount = subscriberCount.toLocaleString();
+
   return (
     <div
       style={{
@@ -38,7 +90,7 @@ export default function SubscriberChart() {
     >
       {/* 제목 + 숫자 */}
       <h3 className="text-white text-base font-normal mb-2">구독자 수</h3>
-      <span className="text-white text-5xl font-bold mb-4">251,012</span>
+      <span className="text-white text-5xl font-bold mb-4">{formattedCount}</span>
 
       {/* 그래프 영역 */}
       <div style={{ flex: 1 }}>

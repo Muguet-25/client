@@ -14,7 +14,7 @@ import { exportCurrentPageAsPdf } from '@/lib/exportPdf';
 
 export default function Dashboard() {
   const { user } = useAuthStore();
-  const { isConnected: youtubeConnected, connect: connectYouTube } = useYouTube();
+  const { isConnected: youtubeConnected, connect: connectYouTube, channel } = useYouTube();
   const { 
     averageViews, 
     averageLikes,
@@ -26,6 +26,11 @@ export default function Dashboard() {
     error: viewsError,
     totalVideos
   } = useAverageViews();
+  
+  // 현재 구독자 수 가져오기
+  const subscriberCount = channel?.statistics?.subscriberCount 
+    ? parseInt(channel.statistics.subscriberCount) 
+    : 0;
   
   return (
     <div className="min-h-screen bg-[#12121E] relative">
@@ -113,7 +118,7 @@ export default function Dashboard() {
 
           {/* 구독자 차트 */}
           <div className="w-full">
-            <SubscriberChart />
+            <SubscriberChart subscriberCount={subscriberCount} />
           </div>
 
           {/* 추천 마케팅 전략 */}
