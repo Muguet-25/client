@@ -13,7 +13,7 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey, {
 });
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || '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',
+  apiKey: process.env.OPENAI_API_KEY
 });
 
 export async function POST(request: NextRequest) {
