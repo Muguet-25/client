@@ -261,6 +261,9 @@ export default function VideoUploadModal({ isOpen, onClose }: VideoUploadModalPr
       video.onerror = handleError;
     });
   };
+
+  const isStep1Valid = Boolean(videoFile && title.trim() && description.trim());
+
   const uploadWithProgress = (url: string, file: File, headers: Record<string, string>, onProgress: (percent: number) => void): Promise<string> => {
     return new Promise((resolve, reject) => {
       const xhr = new XMLHttpRequest();
@@ -851,7 +854,7 @@ export default function VideoUploadModal({ isOpen, onClose }: VideoUploadModalPr
         </div>
 
         {/* 하단 버튼 */}
-        <div className="flex justify-center gap-4 p-4 border-t border-[#3a3b50]">
+        <div className="flex flex-wrap justify-center gap-4 p-4 border-t border-[#3a3b50]">
           {currentStep === 1 ? (
             <>
               <button
@@ -861,11 +864,24 @@ export default function VideoUploadModal({ isOpen, onClose }: VideoUploadModalPr
                 취소
               </button>
               <button
-                onClick={() => setCurrentStep(2)}
-                className="bg-[#ff8953]/40 border border-[#ff8953]/40 rounded-[16px] px-8 py-4 text-[18px] font-medium text-[#ff8953] hover:bg-[#ff8953]/60 transition-colors"
+                onClick={() => {
+                  if (!isStep1Valid) return;
+                  setCurrentStep(2);
+                }}
+                disabled={!isStep1Valid}
+                className={`rounded-[16px] px-8 py-4 text-[18px] font-medium transition-colors ${
+                  isStep1Valid
+                    ? 'bg-[#ff8953]/40 border border-[#ff8953]/40 text-[#ff8953] hover:bg-[#ff8953]/60'
+                    : 'bg-[#ff8953]/20 border border-[#ff8953]/20 text-[#ff8953]/40 cursor-not-allowed'
+                }`}
               >
                 다음으로
               </button>
+              {!isStep1Valid && (
+                <p className="basis-full text-center text-[14px] text-[#ff8953]/80">
+                  동영상 파일, 제목, 설명을 모두 입력하면 다음 단계로 진행할 수 있습니다.
+                </p>
+              )}
             </>
           ) : (
             <>
