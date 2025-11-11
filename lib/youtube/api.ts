@@ -55,7 +55,7 @@ export class YouTubeAPI {
   private cache: Map<string, { data: any; timestamp: number }> = new Map();
   private readonly CACHE_DURATION = 30 * 60 * 1000; // 30분 캐시 (할당량 절약)
   private readonly CHANNEL_CACHE_DURATION = 60 * 60 * 1000; // 채널 정보는 1시간 캐시
-  private readonly VIDEOS_CACHE_DURATION = 15 * 60 * 1000; // 비디오 목록은 15분 캐시
+  private readonly VIDEOS_CACHE_DURATION = 5 * 60 * 1000; // 비디오 목록은 5분 캐시
   private readonly PERSISTENT_CACHE_PREFIX = 'youtube_cache_';
 
   constructor(accessToken: string) {

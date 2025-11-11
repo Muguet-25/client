@@ -28,8 +28,11 @@ function VideoItem({
   scheduledDate,
   scheduledTime,
 }: VideoItemProps) {
+  const isLongDescription = description.length > 100;
+  const truncatedDescription = isLongDescription ? `${description.slice(0, 100)}...` : description;
+
   return (
-    <div className="grid grid-cols-[44px_1fr_120px_80px_100px_24px] gap-6 items-center py-6 border-b border-[#3a3b50]">
+    <div className="group grid grid-cols-[44px_1fr_120px_80px_100px_24px] gap-6 items-center py-6 border-b border-[#3a3b50]">
       {/* 플랫폼 아이콘 */}
       <div className="w-11 h-[113px] flex items-center justify-center">
         {platform === 'youtube' ? (
@@ -71,9 +74,16 @@ function VideoItem({
           <h3 className="text-[#f5f5f5] text-base font-normal leading-[18px] mb-[4px]">
             {title}
           </h3>
-          <p className="text-[#aaaaaa] text-base font-normal leading-[18px]">
-            {description}
-          </p>
+          <div className="relative max-w-xl">
+            <p className="text-[#aaaaaa] text-base font-normal leading-[18px]">
+              {truncatedDescription}
+            </p>
+            {isLongDescription && (
+              <div className="pointer-events-none absolute left-0 top-full z-50 mt-2 hidden w-[480px] rounded-lg border border-[#3a3b50] bg-[#1c1c28] p-4 text-sm text-[#f5f5f5] shadow-xl group-hover:block">
+                {description}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

@@ -11,7 +11,8 @@ interface NavigationItem {
 const navigationItems: NavigationItem[] = [
   { name: '대시보드', href: '/dashboard' },
   { name: '리포트', href: '/report' },
-  { name: '로드맵', href: '/roadmap' }
+  { name: '로드맵', href: '/roadmap' },
+  { name: '트렌딩', href: '/trending' }
 ];
 
 export default function DashboardNavigation() {
