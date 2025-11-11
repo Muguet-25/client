@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useId } from 'react';
 import { X, CloudUpload, ArrowUp, Sun } from 'lucide-react';
 import { WithContext as ReactTags } from 'react-tag-input';
 
@@ -33,6 +33,19 @@ export default function VideoUploadModal({ isOpen, onClose }: VideoUploadModalPr
   const [scheduleEnabled, setScheduleEnabled] = useState(false);
   const [scheduleDate, setScheduleDate] = useState(getTodayDateString()); // yyyy-mm-dd
   const [scheduleTime, setScheduleTime] = useState(''); // HH:MM
+  const videoInputRef = useRef<HTMLInputElement | null>(null);
+  const thumbnailInputRef = useRef<HTMLInputElement | null>(null);
+  const videoInputId = useId();
+  const thumbnailInputId = useId();
+  const [videoPosterUrl, setVideoPosterUrl] = useState<string | null>(null);
+  const videoPosterUrlRef = useRef<string | null>(null);
+  const [thumbnailPreviewUrl, setThumbnailPreviewUrl] = useState<string | null>(null);
+  const thumbnailPreviewUrlRef = useRef<string | null>(null);
+  const [isTimePickerOpen, setIsTimePickerOpen] = useState(false);
+  const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
+  const timePickerRef = useRef<HTMLDivElement | null>(null);
+  const datePickerRef = useRef<HTMLDivElement | null>(null);
+  const [datePickerView, setDatePickerView] = useState<{ year: number; month: number } | null>(null);
 
   const getAccessToken = () => localStorage.getItem('youtube_access_token') || '';
 
@@ -50,6 +63,19 @@ export default function VideoUploadModal({ isOpen, onClose }: VideoUploadModalPr
     setScheduleEnabled(false);
     setScheduleDate(getTodayDateString());
     setScheduleTime('');
+    if (videoPosterUrlRef.current) {
+      URL.revokeObjectURL(videoPosterUrlRef.current);
+      videoPosterUrlRef.current = null;
+    }
+    if (thumbnailPreviewUrlRef.current) {
+      URL.revokeObjectURL(thumbnailPreviewUrlRef.current);
+      thumbnailPreviewUrlRef.current = null;
+    }
+    setVideoPosterUrl(null);
+    setThumbnailPreviewUrl(null);
+    setIsTimePickerOpen(false);
+    setIsDatePickerOpen(false);
+    setDatePickerView(null);
   };
 
   useEffect(() => {
@@ -57,6 +83,130 @@ export default function VideoUploadModal({ isOpen, onClose }: VideoUploadModalPr
       resetForm();
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    return () => {
+      if (videoPosterUrlRef.current) {
+        URL.revokeObjectURL(videoPosterUrlRef.current);
+      }
+      if (thumbnailPreviewUrlRef.current) {
+        URL.revokeObjectURL(thumbnailPreviewUrlRef.current);
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        isTimePickerOpen &&
+        timePickerRef.current &&
+        !timePickerRef.current.contains(event.target as Node)
+      ) {
+        setIsTimePickerOpen(false);
+      }
+      if (
+        isDatePickerOpen &&
+        datePickerRef.current &&
+        !datePickerRef.current.contains(event.target as Node)
+      ) {
+        setIsDatePickerOpen(false);
+      }
+    };
+
+    if (isTimePickerOpen || isDatePickerOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isTimePickerOpen, isDatePickerOpen]);
+
+  const formatDisplayTime = (time: string) => {
+    if (!time) return '시간 선택';
+    const [hourStr, minuteStr] = time.split(':');
+    const hour = Number(hourStr);
+    const period = hour < 12 ? '오전' : '오후';
+    const displayHour = ((hour + 11) % 12) + 1;
+    return `${period} ${displayHour}:${minuteStr}`;
+  };
+
+  const updateScheduleTime = (hour: number, minute: number) => {
+    const formatted = `${String(hour).padStart(2, '0')}:${String(minute).padStart(2, '0')}`;
+    setScheduleTime(formatted);
+  };
+
+  const parseDateString = (dateStr: string): Date => {
+    const [year, month, day] = dateStr.split('-').map(Number);
+    return new Date(year, month - 1, day);
+  };
+
+  const formatDateString = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
+
+  const getCalendarMatrix = (baseDate: { year: number; month: number }) => {
+    const firstDay = new Date(baseDate.year, baseDate.month, 1);
+    const startDayOfWeek = firstDay.getDay(); // 0 (Sun) - 6 (Sat)
+    const daysInMonth = new Date(baseDate.year, baseDate.month + 1, 0).getDate();
+    const prevMonthDays = new Date(baseDate.year, baseDate.month, 0).getDate();
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const weeks: Array<
+      Array<{
+        date: Date;
+        isCurrentMonth: boolean;
+        isToday: boolean;
+        isDisabled: boolean;
+      }>
+    > = [];
+
+    let dayCounter = 1;
+    let nextMonthDay = 1;
+    let started = false;
+
+    for (let week = 0; week < 6; week++) {
+      const weekDays = [];
+      for (let day = 0; day < 7; day++) {
+        let currentDate: Date;
+        let isCurrentMonth = false;
+
+        if (!started && day === startDayOfWeek) {
+          started = true;
+        }
+
+        if (!started) {
+          const prevDay = prevMonthDays - (startDayOfWeek - day - 1);
+          currentDate = new Date(baseDate.year, baseDate.month - 1, prevDay);
+        } else if (dayCounter <= daysInMonth) {
+          currentDate = new Date(baseDate.year, baseDate.month, dayCounter);
+          dayCounter++;
+          isCurrentMonth = true;
+        } else {
+          currentDate = new Date(baseDate.year, baseDate.month + 1, nextMonthDay);
+          nextMonthDay++;
+        }
+
+        const dateCopy = new Date(currentDate);
+        dateCopy.setHours(0, 0, 0, 0);
+
+        weekDays.push({
+          date: currentDate,
+          isCurrentMonth,
+          isToday: dateCopy.getTime() === today.getTime(),
+          isDisabled: dateCopy.getTime() < today.getTime(),
+        });
+      }
+      weeks.push(weekDays);
+    }
+
+    return weeks;
+  };
 
   const uploadWithProgress = (url: string, file: File, headers: Record<string, string>, onProgress: (percent: number) => void): Promise<string> => {
     return new Promise((resolve, reject) => {
@@ -89,6 +239,60 @@ export default function VideoUploadModal({ isOpen, onClose }: VideoUploadModalPr
     setTags([...tags, tag]);
   };
 
+  const generatePosterFromVideo = (file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const video = document.createElement('video');
+      video.preload = 'metadata';
+      video.muted = true;
+      video.playsInline = true;
+      const objectUrl = URL.createObjectURL(file);
+      video.src = objectUrl;
+
+      const cleanup = () => {
+        URL.revokeObjectURL(objectUrl);
+      };
+
+      const handleError = () => {
+        cleanup();
+        reject(new Error('동영상 정보를 불러오지 못했습니다.'));
+      };
+
+      video.onloadeddata = () => {
+        if (!video.videoWidth || !video.videoHeight) {
+          handleError();
+          return;
+        }
+        const seekTime = Math.min(0.1, video.duration || 0);
+        const handleSeeked = () => {
+          const canvas = document.createElement('canvas');
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          const context = canvas.getContext('2d');
+          if (!context) {
+            cleanup();
+            reject(new Error('캔버스 컨텍스트를 생성하지 못했습니다.'));
+            return;
+          }
+          context.drawImage(video, 0, 0, canvas.width, canvas.height);
+          canvas.toBlob((blob) => {
+            cleanup();
+            if (blob) {
+              const thumbnailUrl = URL.createObjectURL(blob);
+              resolve(thumbnailUrl);
+            } else {
+              reject(new Error('썸네일 이미지를 생성하지 못했습니다.'));
+            }
+          }, 'image/png', 0.92);
+        };
+
+        video.currentTime = seekTime;
+        video.onseeked = handleSeeked;
+      };
+
+      video.onerror = handleError;
+    });
+  };
+
   if (!isOpen) return null;
 
   return (
@@ -114,12 +318,33 @@ export default function VideoUploadModal({ isOpen, onClose }: VideoUploadModalPr
             // 첫 번째 단계: 기본 정보
             <>
               {/* 파일 업로드 영역 */}
-              <div className="bg-[#12121e] border border-[#3a3b50] rounded-[16px] p-4">
+              <label
+                htmlFor={videoInputId}
+                tabIndex={0}
+                role="button"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    videoInputRef.current?.click();
+                  }
+                }}
+                className="group bg-[#12121e] border border-[#3a3b50] rounded-[16px] p-4 block cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#ff8953]/60"
+              >
                 <div className="flex flex-col items-center justify-center py-6">
-                  <div className="bg-[#26273c] rounded-[12px] w-[64px] h-[64px] flex items-center justify-center mb-3">
-                    <CloudUpload className="w-12 h-12 text-[#f5f5f5]/60" />
-                  </div>
-                  <div className="text-center">
+                  {videoPosterUrl ? (
+                    <div className="w-full max-w-[280px] aspect-video rounded-[12px] overflow-hidden border border-[#3a3b50] mb-4 shadow-lg">
+                      <img
+                        src={videoPosterUrl}
+                        alt="업로드한 동영상 미리보기"
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                  ) : (
+                    <div className="bg-[#26273c] rounded-[12px] w-[64px] h-[64px] flex items-center justify-center mb-3 transition-colors group-hover:text-[#ff8953]">
+                      <CloudUpload className="w-12 h-12 text-[#f5f5f5]/60" />
+                    </div>
+                  )}
+                  <div className="text-center pointer-events-none">
                     <p className="text-[18px] font-semibold text-[#f5f5f5]/60 mb-1">
                       여기에 동영상을 업로드 해주세요.
                     </p>
@@ -128,16 +353,41 @@ export default function VideoUploadModal({ isOpen, onClose }: VideoUploadModalPr
                     </p>
                   </div>
                   <input
+                    id={videoInputId}
+                    ref={videoInputRef}
                     type="file"
                     accept="video/*"
-                    onChange={(e) => setVideoFile(e.target.files?.[0] || null)}
-                    className="mt-4 text-[#f5f5f5]/80"
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0] || null;
+                      setVideoFile(file);
+
+                      if (videoPosterUrlRef.current) {
+                        URL.revokeObjectURL(videoPosterUrlRef.current);
+                        videoPosterUrlRef.current = null;
+                      }
+
+                      if (file) {
+                        try {
+                          const posterUrl = await generatePosterFromVideo(file);
+                          videoPosterUrlRef.current = posterUrl;
+                          setVideoPosterUrl(posterUrl);
+                        } catch (error) {
+                          console.warn('동영상 썸네일 생성 실패:', error);
+                          setVideoPosterUrl(null);
+                        }
+                      } else {
+                        setVideoPosterUrl(null);
+                      }
+                    }}
+                    className="hidden"
                   />
                   {videoFile && (
-                    <p className="mt-2 text-[#f5f5f5]/60 text-sm">{videoFile.name}</p>
+                    <p className="mt-4 text-[#f5f5f5]/60 text-sm text-center">
+                      {videoFile.name}
+                    </p>
                   )}
                 </div>
-              </div>
+              </label>
 
               {/* 영상 제목 */}
               <div>
@@ -224,12 +474,33 @@ export default function VideoUploadModal({ isOpen, onClose }: VideoUploadModalPr
             // 두 번째 단계: 추가 설정
             <>
               {/* 썸네일 업로드 영역 */}
-              <div className="bg-[#12121e] border border-[#3a3b50] rounded-[16px] p-4">
+              <label
+                htmlFor={thumbnailInputId}
+                tabIndex={0}
+                role="button"
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    thumbnailInputRef.current?.click();
+                  }
+                }}
+                className="group bg-[#12121e] border border-[#3a3b50] rounded-[16px] p-4 block cursor-pointer focus:outline-none focus:ring-2 focus:ring-[#ff8953]/60"
+              >
                 <div className="flex flex-col items-center justify-center py-6">
-                  <div className="bg-[#26273c] rounded-[12px] w-[64px] h-[64px] flex items-center justify-center mb-3">
-                    <ArrowUp className="w-12 h-12 text-[#f5f5f5]/60" />
-                  </div>
-                  <div className="text-center">
+                  {thumbnailPreviewUrl ? (
+                    <div className="w-full max-w-[280px] aspect-video rounded-[12px] overflow-hidden border border-[#3a3b50] mb-4 shadow-lg">
+                      <img
+                        src={thumbnailPreviewUrl}
+                        alt="업로드한 썸네일 미리보기"
+                        className="h-full w-full object-cover"
+                      />
+                    </div>
+                  ) : (
+                    <div className="bg-[#26273c] rounded-[12px] w-[64px] h-[64px] flex items-center justify-center mb-3 transition-colors group-hover:text-[#ff8953]">
+                      <ArrowUp className="w-12 h-12 text-[#f5f5f5]/60" />
+                    </div>
+                  )}
+                  <div className="text-center pointer-events-none">
                     <p className="text-[18px] font-semibold text-[#f5f5f5]/60 mb-1">
                       여기에 동영상 썸네일을 업로드 해주세요.
                     </p>
@@ -238,16 +509,36 @@ export default function VideoUploadModal({ isOpen, onClose }: VideoUploadModalPr
                     </p>
                   </div>
                   <input
+                    id={thumbnailInputId}
+                    ref={thumbnailInputRef}
                     type="file"
                     accept="image/*"
-                    onChange={(e) => setThumbnailFile(e.target.files?.[0] || null)}
-                    className="mt-4 text-[#f5f5f5]/80"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0] || null;
+                      setThumbnailFile(file);
+
+                      if (thumbnailPreviewUrlRef.current) {
+                        URL.revokeObjectURL(thumbnailPreviewUrlRef.current);
+                        thumbnailPreviewUrlRef.current = null;
+                      }
+
+                      if (file) {
+                        const objectUrl = URL.createObjectURL(file);
+                        thumbnailPreviewUrlRef.current = objectUrl;
+                        setThumbnailPreviewUrl(objectUrl);
+                      } else {
+                        setThumbnailPreviewUrl(null);
+                      }
+                    }}
+                    className="hidden"
                   />
                   {thumbnailFile && (
-                    <p className="mt-2 text-[#f5f5f5]/60 text-sm">{thumbnailFile.name}</p>
+                    <p className="mt-4 text-[#f5f5f5]/60 text-sm text-center">
+                      {thumbnailFile.name}
+                    </p>
                   )}
                 </div>
-              </div>
+              </label>
 
               {/* 태그 */}
               <div>
@@ -312,23 +603,245 @@ export default function VideoUploadModal({ isOpen, onClose }: VideoUploadModalPr
                   </label>
                 </div>
                 {scheduleEnabled && (
-                  <div className="flex gap-3">
-                    <input
-                      type="date"
-                      value={scheduleDate}
-                      onChange={(e) => setScheduleDate(e.target.value)}
-                      min={getTodayDateString()}
-                      max={getTodayDateString()}
-                      disabled
-                      className="bg-[#12121e] border border-[#3a3b50] rounded-[16px] px-6 py-4 text-[#f5f5f5] focus:outline-none opacity-70 cursor-not-allowed"
-                    />
-                    <input
-                      type="time"
-                      value={scheduleTime}
-                      onChange={(e) => setScheduleTime(e.target.value)}
-                      className="bg-[#12121e] text-white border border-[#3a3b50] rounded-[16px] px-6 py-4 text-[#f5f5f5] focus:outline-none"
-                    />
-                   
+                  <div className="flex flex-col gap-3">
+                    <div className="flex gap-3">
+                      <div className="relative flex-1" ref={datePickerRef}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsDatePickerOpen((prev) => {
+                              const next = !prev;
+                              if (next) {
+                                const base = parseDateString(scheduleDate || getTodayDateString());
+                                setDatePickerView({
+                                  year: base.getFullYear(),
+                                  month: base.getMonth(),
+                                });
+                                setIsTimePickerOpen(false);
+                              }
+                              return next;
+                            });
+                          }}
+                          className="w-full bg-[#12121e] border border-[#3a3b50] rounded-[16px] px-6 py-4 text-left text-[#f5f5f5] focus:outline-none focus:border-[#ff8953] transition-colors hover:border-[#ff8953]/50"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-[12px] text-[#f5f5f5]/40 uppercase tracking-wide mb-1">
+                                날짜
+                              </p>
+                              <p className="text-[16px] font-medium text-[#f5f5f5]/80">
+                                {scheduleDate ? scheduleDate.replace(/-/g, '. ') : '날짜 선택'}
+                              </p>
+                            </div>
+                            
+                          </div>
+                        </button>
+
+                        {isDatePickerOpen && datePickerView && (
+                          <div className="absolute left-0 bottom-[calc(100%+8px)] z-50 w-full rounded-[16px] border border-[#3a3b50] bg-[#1c1c28] p-4 shadow-xl">
+                            <div className="mb-4 flex items-center justify-between">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setDatePickerView((prev) =>
+                                    prev
+                                      ? {
+                                          year: prev.month === 0 ? prev.year - 1 : prev.year,
+                                          month: prev.month === 0 ? 11 : prev.month - 1,
+                                        }
+                                      : prev
+                                  )
+                                }
+                                className="rounded-full bg-[#26273c] px-3 py-1 text-sm text-[#f5f5f5]/70 hover:text-[#ff8953] transition-colors"
+                              >
+                                ←
+                              </button>
+                              <p className="text-[#f5f5f5]/80 text-sm font-semibold">
+                                {datePickerView.year}년 {datePickerView.month + 1}월
+                              </p>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setDatePickerView((prev) =>
+                                    prev
+                                      ? {
+                                          year: prev.month === 11 ? prev.year + 1 : prev.year,
+                                          month: prev.month === 11 ? 0 : prev.month + 1,
+                                        }
+                                      : prev
+                                  )
+                                }
+                                className="rounded-full bg-[#26273c] px-3 py-1 text-sm text-[#f5f5f5]/70 hover:text-[#ff8953] transition-colors"
+                              >
+                                →
+                              </button>
+                            </div>
+                            <div className="grid grid-cols-7 gap-2 text-center text-[#f5f5f5]/40 text-xs mb-2">
+                              {['일', '월', '화', '수', '목', '금', '토'].map((day) => (
+                                <span key={day}>{day}</span>
+                              ))}
+                            </div>
+                            <div className="grid grid-cols-7 gap-2">
+                              {getCalendarMatrix(datePickerView).flat().map((cell, index) => {
+                                const formatted = formatDateString(cell.date);
+                                const isSelected = scheduleDate === formatted;
+                                return (
+                                  <button
+                                    key={`${formatted}-${index}`}
+                                    type="button"
+                                    disabled={cell.isDisabled}
+                                    onClick={() => {
+                                      setScheduleDate(formatted);
+                                      setIsDatePickerOpen(false);
+                                    }}
+                                    className={`h-10 rounded-[10px] text-sm transition-colors ${
+                                      cell.isDisabled
+                                        ? 'cursor-not-allowed bg-transparent text-[#f5f5f5]/20'
+                                        : cell.isCurrentMonth
+                                          ? 'text-[#f5f5f5]/80 hover:bg-[#26273c]'
+                                          : 'text-[#f5f5f5]/30 hover:bg-[#26273c]/50'
+                                    } ${
+                                      isSelected
+                                        ? 'bg-[#ff8953]/20 text-[#ff8953]'
+                                        : cell.isToday && !isSelected
+                                          ? 'border border-dashed border-[#ff8953]/40'
+                                          : ''
+                                    }`}
+                                  >
+                                    {cell.date.getDate()}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                            <div className="mt-3 flex items-center justify-between text-xs text-[#f5f5f5]/40">
+                              <span>오늘 이전 날짜는 선택할 수 없습니다.</span>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const today = parseDateString(getTodayDateString());
+                                  setScheduleDate(formatDateString(today));
+                                  setDatePickerView({
+                                    year: today.getFullYear(),
+                                    month: today.getMonth(),
+                                  });
+                                }}
+                                className="text-[#ff8953] hover:underline"
+                              >
+                                오늘로 이동
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                      <div className="relative flex-1" ref={timePickerRef}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsTimePickerOpen((prev) => {
+                              const next = !prev;
+                              if (next) {
+                                setIsDatePickerOpen(false);
+                              }
+                              return next;
+                            });
+                          }}
+                          className="w-full bg-[#12121e] border border-[#3a3b50] rounded-[16px] px-6 py-4 text-left text-[#f5f5f5] focus:outline-none focus:border-[#ff8953] transition-colors hover:border-[#ff8953]/50"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <p className="text-[12px] text-[#f5f5f5]/40 uppercase tracking-wide mb-1">
+                                시간
+                              </p>
+                              <p className="text-[16px] font-medium text-[#f5f5f5]/80">
+                                {formatDisplayTime(scheduleTime)}
+                              </p>
+                            </div>
+                            
+                          </div>
+                        </button>
+
+                        {isTimePickerOpen && (
+                          <div className="absolute left-0 bottom-[calc(100%+8px)] z-50 w-full rounded-[16px] border border-[#3a3b50] bg-[#1c1c28] p-4 shadow-xl">
+                            <div className="mb-3 flex items-center justify-between">
+                              <p className="text-[#f5f5f5]/70 text-sm">시간 선택</p>
+                              <button
+                                type="button"
+                                onClick={() => setIsTimePickerOpen(false)}
+                                className="text-[#f5f5f5]/40 hover:text-[#f5f5f5]/70 transition-colors text-sm"
+                              >
+                                닫기
+                              </button>
+                            </div>
+                            <div className="grid grid-cols-[1fr_auto_1fr] gap-3">
+                              <div className="max-h-40 overflow-y-auto rounded-[12px] border border-[#3a3b50]">
+                                <ul>
+                                  {Array.from({ length: 24 }, (_, i) => i).map((hour) => {
+                                    const isActive =
+                                      scheduleTime &&
+                                      Number(scheduleTime.split(':')[0]) === hour;
+                                    return (
+                                      <li key={hour}>
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            const minute = scheduleTime
+                                              ? Number(scheduleTime.split(':')[1])
+                                              : 0;
+                                            updateScheduleTime(hour, minute);
+                                          }}
+                                          className={`w-full px-4 py-2 text-left text-sm transition-colors ${
+                                            isActive
+                                              ? 'bg-[#26273c] text-[#ff8953]'
+                                              : 'text-[#f5f5f5]/70 hover:bg-[#26273c]/70'
+                                          }`}
+                                        >
+                                          {`${String(hour).padStart(2, '0')} 시`}
+                                        </button>
+                                      </li>
+                                    );
+                                  })}
+                                </ul>
+                              </div>
+                              <div className="flex items-center justify-center text-[#f5f5f5]/40 text-sm">
+                                :
+                              </div>
+                              <div className="max-h-40 overflow-y-auto rounded-[12px] border border-[#3a3b50]">
+                                <ul>
+                                  {[0, 10, 20, 30, 40, 50].map((minute) => {
+                                    const isActive =
+                                      scheduleTime &&
+                                      Number(scheduleTime.split(':')[1]) === minute;
+                                    return (
+                                      <li key={minute}>
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            const hour = scheduleTime
+                                              ? Number(scheduleTime.split(':')[0])
+                                              : 0;
+                                            updateScheduleTime(hour, minute);
+                                          }}
+                                          className={`w-full px-4 py-2 text-left text-sm transition-colors ${
+                                            isActive
+                                              ? 'bg-[#26273c] text-[#ff8953]'
+                                              : 'text-[#f5f5f5]/70 hover:bg-[#26273c]/70'
+                                          }`}
+                                        >
+                                          {`${String(minute).padStart(2, '0')} 분`}
+                                        </button>
+                                      </li>
+                                    );
+                                  })}
+                                </ul>
+                              </div>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    <p className="text-sm text-[#f5f5f5]/40">
+                      예약 시간은 한국 표준시(KST) 기준으로 설정됩니다.
+                    </p>
                   </div>
                 )}
               </div>

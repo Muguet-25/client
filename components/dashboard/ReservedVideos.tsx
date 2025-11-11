@@ -75,12 +75,12 @@ function VideoItem({
             {title}
           </h3>
           <div className="relative max-w-xl">
-            <p className="text-[#aaaaaa] text-base font-normal leading-[18px]">
+          <p className="text-[#aaaaaa] text-base font-normal leading-[18px]">
               {truncatedDescription}
             </p>
             {isLongDescription && (
               <div className="pointer-events-none absolute left-0 top-full z-50 mt-2 hidden w-[480px] rounded-lg border border-[#3a3b50] bg-[#1c1c28] p-4 text-sm text-[#f5f5f5] shadow-xl group-hover:block">
-                {description}
+            {description}
               </div>
             )}
           </div>

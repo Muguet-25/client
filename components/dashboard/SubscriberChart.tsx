@@ -61,12 +61,12 @@ export default function SubscriberChart({ subscriberCount = 0 }: SubscriberChart
     dataPoints[dataPoints.length - 1].y = subscriberCount;
   }
 
-  const data = [
-    {
-      id: "구독자 수",
+const data = [
+  {
+    id: "구독자 수",
       data: dataPoints,
-    },
-  ];
+  },
+];
 
   const minValue = data[0]?.data.length > 0
     ? Math.min(...data[0].data.map((d) => d.y))

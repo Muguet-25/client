@@ -50,7 +50,7 @@ export const useYouTube = (): UseYouTubeReturn => {
   const [analytics, setAnalytics] = useState<YouTubeAnalytics | null>(null);
   const [dailyData, setDailyData] = useState<YouTubeAnalyticsData[]>([]);
   const [api, setApi] = useState<YouTubeAPI | null>(null);
-  
+
   // 중복 요청 방지를 위한 플래그들
   const [isLoadingChannel, setIsLoadingChannel] = useState(false);
   const [isLoadingVideos, setIsLoadingVideos] = useState(false);

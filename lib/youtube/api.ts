@@ -102,7 +102,7 @@ export class YouTubeAPI {
     
     if (cached) {
       console.log(`캐시 만료: ${key}`);
-      this.cache.delete(key);
+    this.cache.delete(key);
     }
     
     return null;
