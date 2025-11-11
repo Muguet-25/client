@@ -38,13 +38,13 @@ export default function VideoUploadModal({ isOpen, onClose }: VideoUploadModalPr
   const videoInputId = useId();
   const thumbnailInputId = useId();
   const [videoPosterUrl, setVideoPosterUrl] = useState<string | null>(null);
-  const videoPosterUrlRef = useRef<string | null>(null);
   const [thumbnailPreviewUrl, setThumbnailPreviewUrl] = useState<string | null>(null);
+  const videoPosterUrlRef = useRef<string | null>(null);
   const thumbnailPreviewUrlRef = useRef<string | null>(null);
-  const [isTimePickerOpen, setIsTimePickerOpen] = useState(false);
   const [isDatePickerOpen, setIsDatePickerOpen] = useState(false);
-  const timePickerRef = useRef<HTMLDivElement | null>(null);
+  const [isTimePickerOpen, setIsTimePickerOpen] = useState(false);
   const datePickerRef = useRef<HTMLDivElement | null>(null);
+  const timePickerRef = useRef<HTMLDivElement | null>(null);
   const [datePickerView, setDatePickerView] = useState<{ year: number; month: number } | null>(null);
 
   const getAccessToken = () => localStorage.getItem('youtube_access_token') || '';
@@ -73,8 +73,8 @@ export default function VideoUploadModal({ isOpen, onClose }: VideoUploadModalPr
     }
     setVideoPosterUrl(null);
     setThumbnailPreviewUrl(null);
-    setIsTimePickerOpen(false);
     setIsDatePickerOpen(false);
+    setIsTimePickerOpen(false);
     setDatePickerView(null);
   };
 
@@ -208,37 +208,6 @@ export default function VideoUploadModal({ isOpen, onClose }: VideoUploadModalPr
     return weeks;
   };
 
-  const uploadWithProgress = (url: string, file: File, headers: Record<string, string>, onProgress: (percent: number) => void): Promise<string> => {
-    return new Promise((resolve, reject) => {
-      const xhr = new XMLHttpRequest();
-      xhr.open('PUT', url);
-      Object.entries(headers).forEach(([k, v]) => xhr.setRequestHeader(k, v));
-      xhr.upload.onprogress = (event) => {
-        if (event.lengthComputable) {
-          const percent = Math.floor((event.loaded / event.total) * 100);
-          onProgress(percent);
-        }
-      };
-      xhr.onload = () => {
-        if (xhr.status >= 200 && xhr.status < 300) {
-          resolve(xhr.responseText || '{}');
-        } else {
-          reject(new Error(`Upload failed (${xhr.status}): ${xhr.responseText}`));
-        }
-      };
-      xhr.onerror = () => reject(new Error('Network error during upload'));
-      xhr.send(file);
-    });
-  };
-
-  const handleDelete = (i: number) => {
-    setTags(tags.filter((tag, index) => index !== i));
-  };
-
-  const handleAddition = (tag: {id: string, text: string}) => {
-    setTags([...tags, tag]);
-  };
-
   const generatePosterFromVideo = (file: File): Promise<string> => {
     return new Promise((resolve, reject) => {
       const video = document.createElement('video');
@@ -291,6 +260,36 @@ export default function VideoUploadModal({ isOpen, onClose }: VideoUploadModalPr
 
       video.onerror = handleError;
     });
+  };
+  const uploadWithProgress = (url: string, file: File, headers: Record<string, string>, onProgress: (percent: number) => void): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('PUT', url);
+      Object.entries(headers).forEach(([k, v]) => xhr.setRequestHeader(k, v));
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable) {
+          const percent = Math.floor((event.loaded / event.total) * 100);
+          onProgress(percent);
+        }
+      };
+      xhr.onload = () => {
+        if (xhr.status >= 200 && xhr.status < 300) {
+          resolve(xhr.responseText || '{}');
+        } else {
+          reject(new Error(`Upload failed (${xhr.status}): ${xhr.responseText}`));
+        }
+      };
+      xhr.onerror = () => reject(new Error('Network error during upload'));
+      xhr.send(file);
+    });
+  };
+
+  const handleDelete = (i: number) => {
+    setTags(tags.filter((tag, index) => index !== i));
+  };
+
+  const handleAddition = (tag: {id: string, text: string}) => {
+    setTags([...tags, tag]);
   };
 
   if (!isOpen) return null;
@@ -612,7 +611,9 @@ export default function VideoUploadModal({ isOpen, onClose }: VideoUploadModalPr
                             setIsDatePickerOpen((prev) => {
                               const next = !prev;
                               if (next) {
-                                const base = parseDateString(scheduleDate || getTodayDateString());
+                                const base = scheduleDate
+                                  ? parseDateString(scheduleDate)
+                                  : parseDateString(getTodayDateString());
                                 setDatePickerView({
                                   year: base.getFullYear(),
                                   month: base.getMonth(),
