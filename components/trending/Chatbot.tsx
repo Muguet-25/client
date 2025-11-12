@@ -26,6 +26,7 @@ export default function Chatbot() {
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isSidebarPinned, setIsSidebarPinned] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -81,7 +82,7 @@ export default function Chatbot() {
         setCurrentConversationId(data.conversation.id);
         setMessages([]);
         await loadConversations();
-        setIsSidebarOpen(false);
+        setIsSidebarOpen(isSidebarPinned);
         inputRef.current?.focus();
       }
     } catch (error) {
@@ -142,7 +143,7 @@ export default function Chatbot() {
   const selectConversation = async (conversationId: string) => {
     setCurrentConversationId(conversationId);
     await loadMessages(conversationId);
-    setIsSidebarOpen(false);
+    setIsSidebarOpen(isSidebarPinned);
   };
 
   // 대화방 삭제
@@ -250,12 +251,28 @@ export default function Chatbot() {
         className={`transition-all duration-300 ${
           isSidebarOpen ? 'w-64' : 'w-16'
         } bg-[#1c1c28] border-r border-[#3a3b50] flex flex-col flex-shrink-0`}
+        onMouseEnter={() => {
+          if (!isSidebarPinned) {
+            setIsSidebarOpen(true);
+          }
+        }}
+        onMouseLeave={() => {
+          if (!isSidebarPinned) {
+            setIsSidebarOpen(false);
+          }
+        }}
       >
         {/* 사이드바 헤더 */}
         <div className="p-4 border-b border-[#3a3b50]">
           <div className="flex items-center justify-center">
             <button
-              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              onClick={() => {
+                setIsSidebarPinned((prev) => {
+                  const nextPinned = !prev;
+                  setIsSidebarOpen(nextPinned);
+                  return nextPinned;
+                });
+              }}
               className="p-2 hover:bg-[#3a3b50] rounded-lg transition-colors"
             >
               <svg className="w-5 h-5 text-[#f5f5f5]/80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
