@@ -2,6 +2,7 @@
 
 import { usePathname } from 'next/navigation';
 import { supabase } from '@/utils/config';
+import Link from 'next/link';
 
 interface NavigationItem {
   name: string;
@@ -44,17 +45,16 @@ export default function DashboardNavigation() {
             {navigationItems.map((item) => {
               const isActive = pathname === item.href;
               return (
-              <a
-                key={item.name}
-                href={item.href}
-                className={`text-lg font-normal transition-colors ${
+                <Link href={item.href} key={item.name}>
+                  <span className={`text-base font-normal transition-colors ${
                     isActive 
                     ? 'text-[#ff8953]' 
                     : 'text-white hover:text-[#ff8953]'
-                }`}
-              >
-                {item.name}
-              </a>
+                  }`}>
+                    {item.name}
+                  </span>
+                </Link>
+              
               );
             })}
           </div>
