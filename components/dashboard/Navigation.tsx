@@ -46,7 +46,7 @@ export default function DashboardNavigation() {
                 <a
                   key={item.name}
                   href={item.href}
-                  className={`text-lg font-normal transition-colors ${
+                  className={`text-base font-normal transition-colors ${
                     isActive 
                       ? 'text-[#ff8953]' 
                       : 'text-white hover:text-[#ff8953]'
