@@ -14,12 +14,12 @@ const supabase = createClient(supabaseUrl, supabaseServiceKey, {
 // 특정 대화방의 메시지 조회
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');
-    const conversationId = params.id;
+    const { id: conversationId } = await context.params;
 
     if (!userId) {
       return NextResponse.json(

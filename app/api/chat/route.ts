@@ -16,6 +16,7 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY!
 });
 
+
 export async function POST(request: NextRequest) {
   try {
     const { conversationId, message, userId } = await request.json();
