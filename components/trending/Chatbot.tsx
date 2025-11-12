@@ -21,6 +21,7 @@ export default function Chatbot() {
   const { user } = useAuthStore();
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
+  const [isConversationsLoaded, setIsConversationsLoaded] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -40,6 +41,8 @@ export default function Chatbot() {
       }
     } catch (error) {
       console.error('대화방 목록 로드 실패:', error);
+    } finally {
+      setIsConversationsLoaded(true);
     }
   };
 
@@ -207,18 +210,31 @@ export default function Chatbot() {
   // 초기 로드
   useEffect(() => {
     if (user?.id) {
+      setIsConversationsLoaded(false);
       loadConversations();
     }
   }, [user?.id]);
 
   // 첫 대화방이 없으면 자동 생성, 있으면 자동 선택
   useEffect(() => {
-    if (user?.id && conversations.length === 0 && !currentConversationId) {
+    if (!user?.id || !isConversationsLoaded) {
+      return;
+    }
+
+    if (conversations.length === 0) {
+      if (!currentConversationId) {
       createNewConversation();
-    } else if (conversations.length > 0 && !currentConversationId) {
+      }
+      return;
+    }
+
+    if (
+      !currentConversationId ||
+      !conversations.some((conversation) => conversation.id === currentConversationId)
+    ) {
       selectConversation(conversations[0].id);
     }
-  }, [conversations, user?.id]);
+  }, [conversations, user?.id, currentConversationId, isConversationsLoaded]);
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
