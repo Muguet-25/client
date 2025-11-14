@@ -38,7 +38,7 @@ export default function DashboardNavigation() {
 
   return (
     <div className="bg-[#12121e] border-b border-[#696969] px-6 py-4">
-      <nav className="max-w-7xl mx-auto">
+      <nav className="w-full">
         <div className="flex items-center justify-center relative">
           {/* 네비게이션 메뉴 - 중앙 정렬 */}
           <div className="flex items-center space-x-8">

@@ -343,24 +343,65 @@ export default function Chatbot() {
 
       {/* 메인 채팅 영역 */}
       <div className="flex-1 flex flex-col bg-[#12121e] overflow-hidden">
-        {/* 헤더 제거 */}
-
         {/* 메시지 영역 */}
-        <div className="flex-1 overflow-y-auto px-8 py-6">
-          {messages.length === 0 && (
-            <div className="flex items-center justify-center h-full">
-              <div className="text-center">
-                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-[#ff8953] to-[#ffb05b] flex items-center justify-center">
-                  <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                  </svg>
+        {messages.length === 0 ? (
+          /* 초기 화면 */
+          <div className="flex-1 flex flex-col items-center justify-center px-8 py-6">
+            {/* 메인 타이틀 */}
+            <div className="mb-12">
+              <h1 className="text-3xl md:text-4xl font-bold text-center bg-gradient-to-r from-[#ff8953] via-[#ffb05b] to-[#ffd700] bg-clip-text text-transparent">
+                AI에게 트렌드 콘텐츠를 물어보세요!
+              </h1>
+            </div>
+
+            {/* 가운데 입력 필드 */}
+            <div className="w-full max-w-3xl">
+              <div 
+                className="bg-[#1c1c28] border border-[#3a3b50] rounded-full px-6 py-4 flex items-center gap-4 shadow-lg hover:shadow-xl transition-shadow cursor-text"
+                onClick={() => inputRef.current?.focus()}
+              >
+                {/* Star 아이콘 */}
+                <div className="flex-shrink-0">
+                  <img 
+                    src="/img/Star 3.svg" 
+                    alt="Star" 
+                    className="w-6 h-6"
+                  />
                 </div>
-                <p className="text-[#f5f5f5]/60 text-lg">대화를 시작해보세요</p>
+
+                {/* 입력 필드 */}
+                <input
+                  ref={inputRef}
+                  type="text"
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyPress={handleKeyPress}
+                  placeholder="AI와 대화하기..."
+                  className="flex-1 bg-transparent text-[#f5f5f5] placeholder:text-[#9ca3af] text-[16px] outline-none"
+                  disabled={isLoading || !currentConversationId}
+                />
+
+                {/* 전송 버튼 (위쪽 화살표) */}
+                <button
+                  onClick={handleSend}
+                  disabled={!input.trim() || isLoading || !currentConversationId}
+                  className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center transition-colors ${
+                    input.trim() && !isLoading && currentConversationId
+                      ? 'bg-[#3a3b50] text-[#f5f5f5] hover:bg-[#4a4b60]'
+                      : 'bg-[#2a2b40] text-[#9ca3af] cursor-not-allowed'
+                  }`}
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 10l7-7m0 0l7 7m-7-7v18" />
+                  </svg>
+                </button>
               </div>
             </div>
-          )}
-
-          <div className="max-w-3xl mx-auto space-y-6">
+          </div>
+        ) : (
+          /* 일반 채팅 화면 */
+          <div className="flex-1 overflow-y-auto px-8 py-6">
+            <div className="max-w-3xl mx-auto space-y-6">
             {messages.map((message) => (
               <div
                 key={message.id}
@@ -414,11 +455,13 @@ export default function Chatbot() {
               </div>
             )}
 
-            <div ref={messagesEndRef} />
+              <div ref={messagesEndRef} />
+            </div>
           </div>
-        </div>
+        )}
 
-        {/* 입력 영역 */}
+        {/* 입력 영역 - 메시지가 있을 때만 표시 */}
+        {messages.length > 0 && (
         <div className="px-8 py-4 flex-shrink-0 border-t border-[#3a3b50] bg-[#12121e]">
           <div className="max-w-3xl mx-auto">
             <div className="bg-[#1c1c28] border border-[#3a3b50] rounded-full px-4 py-3 flex items-center gap-3 shadow-sm hover:shadow-md transition-shadow focus-within:border-[#ff8953] focus-within:shadow-md">
@@ -456,6 +499,7 @@ export default function Chatbot() {
             </div>
           </div>
         </div>
+        )}
       </div>
     </div>
   );

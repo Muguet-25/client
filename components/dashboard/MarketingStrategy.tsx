@@ -55,22 +55,8 @@ export default function MarketingStrategy() {
   }, []);
   return (
     <div className="w-full">
-      {/* 헤더 */}
-      <div className="flex justify-between items-start mt-24">
-        <h2 className="text-[#f5f5f5] text-[48px] font-bold leading-[54px]">
-          추천 마케팅 전략
-        </h2>
-        <button 
-          onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-2 px-3 py-3 bg-[#ff8953]/40 border border-[#ff8953]/40 rounded-md text-[#ff8953] text-lg font-medium leading-5 hover:bg-[#ff8953]/60 transition-colors"
-        >
-          예약하러 가기
-          <ArrowRight className="w-5 h-5" />
-        </button>
-      </div>
-
       {/* 콘텐츠 */}
-      <div className="flex items-center gap-8 mt-8">
+      <div className="flex items-center gap-8 mt-24">
         {/* 왼쪽: 최적의 업로드 시간 */}
         <div className="flex flex-col">
           <span className="text-[#aaaaaa] text-base font-normal leading-[18px] mb-2">
@@ -97,6 +83,15 @@ export default function MarketingStrategy() {
             )}
           </div>
         </div>
+
+        {/* 예약하러 가기 버튼 */}
+        <button 
+          onClick={() => setIsModalOpen(true)}
+          className="flex items-center gap-2 px-3 py-3 bg-[#ff8953]/40 border border-[#ff8953]/40 rounded-md text-[#ff8953] text-lg font-medium leading-5 hover:bg-[#ff8953]/60 transition-colors"
+        >
+          예약하러 가기
+          <ArrowRight className="w-5 h-5" />
+        </button>
       </div>
 
       {/* 비디오 업로드 모달 */}

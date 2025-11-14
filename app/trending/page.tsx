@@ -1,20 +1,22 @@
 'use client';
 
-import DashboardNavigation from '@/components/dashboard/Navigation';
+import Sidebar from '@/components/dashboard/Sidebar';
 import Chatbot from '@/components/trending/Chatbot';
 
 export default function TrendingPage() {
-  return (
-    <div className="min-h-screen bg-[#12121E] relative">
-      {/* 네비게이션 */}
-      <div className="fixed top-0 left-0 right-0 z-50">
-        <DashboardNavigation />
-      </div>
 
-      {/* 메인 콘텐츠 */}
-      <div className="pt-24 h-[calc(100vh-96px)]">
-        <div className="h-full">
-          <Chatbot />
+  return (
+    <div className="min-h-screen bg-[#12121E] relative flex">
+      {/* 사이드바 */}
+      <Sidebar />
+
+      {/* 메인 콘텐츠 영역 */}
+      <div className="flex-1 h-screen ml-[260px]">
+        {/* 1440px 최대 너비 컨테이너 */}
+        <div className="max-w-[1440px] mx-auto h-full">
+          <div className="h-full">
+            <Chatbot />
+          </div>
         </div>
       </div>
     </div>

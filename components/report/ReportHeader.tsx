@@ -8,7 +8,7 @@ export default function ReportHeader() {
   const { user } = useAuthStore();
   
   return (
-    <div className="bg-[#12121E] max-w-7xl mx-auto px-6 pt-8 pb-4 mt-12">
+    <div className="bg-[#12121E] px-8 pt-8 pb-4">
       <div className="flex justify-between items-start">
         <div>
           <h1 className="text-[3rem] font-bold text-white">리포트</h1>

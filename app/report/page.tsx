@@ -1,6 +1,6 @@
 'use client';
 
-import DashboardNavigation from '@/components/dashboard/Navigation';
+import Sidebar from '@/components/dashboard/Sidebar';
 import ReportHeader from '@/components/report/ReportHeader';
 import Calendar from '@/components/report/Calendar';
 import VideoDetailModal from '@/components/report/VideoDetailModal';
@@ -52,47 +52,53 @@ export default function ReportPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#12121E] relative">
-      {/* 네비게이션 */}
-      <div className="fixed top-0 left-0 right-0 z-50">
-        <DashboardNavigation />
-      </div>
-      
-      <ReportHeader />
-      
-      {/* YouTube 연결 상태에 따른 메시지 */}
-      {!isConnected ? (
-        <div className="max-w-7xl mx-auto px-6 pt-8 pb-8">
-          <div className="bg-[#1c1c28] border border-[#3a3b50] rounded-lg p-8 text-center">
-            <h2 className="text-xl font-semibold text-white mb-4">YouTube 연결 필요</h2>
-            <p className="text-gray-400 mb-6">
-              리포트를 보려면 YouTube 계정을 연결해주세요.
-            </p>
-          </div>
-        </div>
-      ) : isLoading ? (
-        <div className="max-w-7xl mx-auto px-6 pt-8 pb-8">
-          <div className="bg-[#1c1c28] border border-[#3a3b50] rounded-lg p-8 text-center">
-            <p className="text-white">동영상 데이터를 불러오는 중...</p>
-          </div>
-        </div>
-      ) : error ? (
-        <div className="max-w-7xl mx-auto px-6 pt-8 pb-8">
-          <div className="bg-[#1c1c28] border border-[#3a3b50] rounded-lg p-8 text-center">
-            <h2 className="text-xl font-semibold text-red-400 mb-4">오류 발생</h2>
-            <p className="text-gray-400">{error}</p>
-          </div>
-        </div>
-      ) : (
-        <Calendar events={calendarEvents} onVideoClick={handleVideoClick} />
-      )}
+    <div className="min-h-screen bg-[#12121E] relative flex">
+      {/* 사이드바 */}
+      <Sidebar />
 
-      {/* 영상 세부정보 모달 */}
-      <VideoDetailModal
-        isOpen={isModalOpen}
-        onClose={handleCloseModal}
-        video={selectedVideo}
-      />
+      {/* 메인 콘텐츠 영역 */}
+      <div className="flex-1 ml-[260px]">
+        {/* 1440px 최대 너비 컨테이너 */}
+        <div className="max-w-[1440px] mx-auto">
+          <ReportHeader />
+          
+          {/* YouTube 연결 상태에 따른 메시지 */}
+          {!isConnected ? (
+            <div className="px-8 pt-8 pb-8">
+              <div className="bg-[#1c1c28] border border-[#3a3b50] rounded-lg p-8 text-center">
+                <h2 className="text-xl font-semibold text-white mb-4">YouTube 연결 필요</h2>
+                <p className="text-gray-400 mb-6">
+                  리포트를 보려면 YouTube 계정을 연결해주세요.
+                </p>
+              </div>
+            </div>
+          ) : isLoading ? (
+            <div className="px-8 pt-8 pb-8">
+              <div className="bg-[#1c1c28] border border-[#3a3b50] rounded-lg p-8 text-center">
+                <p className="text-white">동영상 데이터를 불러오는 중...</p>
+              </div>
+            </div>
+          ) : error ? (
+            <div className="px-8 pt-8 pb-8">
+              <div className="bg-[#1c1c28] border border-[#3a3b50] rounded-lg p-8 text-center">
+                <h2 className="text-xl font-semibold text-red-400 mb-4">오류 발생</h2>
+                <p className="text-gray-400">{error}</p>
+              </div>
+            </div>
+          ) : (
+            <div className="px-8 pt-8 pb-8">
+              <Calendar events={calendarEvents} onVideoClick={handleVideoClick} />
+            </div>
+          )}
+        </div>
+
+        {/* 영상 세부정보 모달 */}
+        <VideoDetailModal
+          isOpen={isModalOpen}
+          onClose={handleCloseModal}
+          video={selectedVideo}
+        />
+      </div>
     </div>
   );
 }
