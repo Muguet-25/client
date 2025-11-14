@@ -194,16 +194,19 @@ const convertYouTubeVideoToReservedFormat = (video: YouTubeVideo) => {
 export default function ReservedVideos() {
   const { videos, isConnected, isLoading, error, refreshVideos } = useYouTube();
   const [convertedVideos, setConvertedVideos] = useState<any[]>([]);
-  const [currentPage, setCurrentPage] = useState(1);
-  const videosPerPage = 3;
+  const [displayedCount, setDisplayedCount] = useState(5);
+  const videosPerLoad = 5;
 
   // YouTube 비디오 데이터를 ReservedVideos 형식으로 변환
   useEffect(() => {
     if (videos && videos.length > 0) {
       const converted = videos.map(convertYouTubeVideoToReservedFormat);
       setConvertedVideos(converted);
+      // 비디오 데이터가 변경되면 표시 개수 초기화
+      setDisplayedCount(5);
     } else {
       setConvertedVideos([]);
+      setDisplayedCount(5);
     }
   }, [videos]);
 
@@ -214,21 +217,21 @@ export default function ReservedVideos() {
     }
   }, [isConnected, videos.length, refreshVideos]);
 
-  // 페이지네이션 계산
-  const totalPages = Math.ceil(convertedVideos.length / videosPerPage);
-  const startIndex = (currentPage - 1) * videosPerPage;
-  const endIndex = startIndex + videosPerPage;
-  const currentVideos = convertedVideos.slice(startIndex, endIndex);
+  // 표시할 비디오 목록
+  const currentVideos = convertedVideos.slice(0, displayedCount);
 
-  // 페이지 변경 핸들러
-  const handlePageChange = (page: number) => {
-    setCurrentPage(page);
+  // 더보기 버튼 핸들러
+  const handleLoadMore = () => {
+    setDisplayedCount(prev => prev + videosPerLoad);
   };
+
+  // 더보기 버튼 표시 여부 (표시된 비디오가 전체보다 적을 때만)
+  const hasMore = displayedCount < convertedVideos.length;
 
   // 로딩 상태
   if (isLoading) {
     return (
-      <div className="w-full mx-auto mt-24">
+      <div className="w-full mx-auto mt-20">
         <div className="mb-8">
           <h1 className="text-[#f5f5f5] text-[48px] font-bold leading-[54px]">
             예약된 동영상
@@ -244,7 +247,7 @@ export default function ReservedVideos() {
   // 에러 상태
   if (error) {
     return (
-      <div className="w-full mx-auto mt-24">
+      <div className="w-full mx-auto mt-20">
         <div className="mb-8">
           <h1 className="text-[#f5f5f5] text-[48px] font-bold leading-[54px]">
             예약된 동영상
@@ -260,7 +263,7 @@ export default function ReservedVideos() {
   // 연결되지 않은 상태
   if (!isConnected) {
     return (
-      <div className="w-full mx-auto mt-24">
+      <div className="w-full mx-auto mt-20">
         <div className="mb-8">
           <h1 className="text-[#f5f5f5] text-[48px] font-bold leading-[54px]">
             예약된 동영상
@@ -274,7 +277,7 @@ export default function ReservedVideos() {
   }
 
   return (
-    <div className="w-full mx-auto mt-24">
+    <div className="w-full mx-auto mt-20">
       {/* 제목 */}
       <div className="mb-8">
         <h1 className="text-[#f5f5f5] text-[48px] font-bold leading-[54px]">
@@ -317,22 +320,15 @@ export default function ReservedVideos() {
           )}
         </div>
 
-        {/* 페이지네이션 */}
-        {convertedVideos.length > 0 && (
-          <div className="flex justify-center items-center gap-2 mt-8">
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-              <button
-                key={page}
-                onClick={() => handlePageChange(page)}
-                className={`w-11 h-11 flex items-center justify-center rounded text-lg font-medium leading-5 transition-colors ${
-                  currentPage === page
-                    ? 'bg-[#1c1c28] border border-[#3a3b50] text-[#ff8953]'
-                    : 'text-white hover:bg-[#1c1c28] hover:border hover:border-[#3a3b50]'
-                }`}
-              >
-                {page}
-              </button>
-            ))}
+        {/* 더보기 버튼 */}
+        {hasMore && (
+          <div className="flex justify-center items-center mt-8">
+            <button
+              onClick={handleLoadMore}
+              className="px-6 py-3 bg-[#1c1c28] border border-[#3a3b50] rounded-lg text-white text-base font-medium hover:bg-[#2a2a3a] hover:border-[#ff8953] transition-colors"
+            >
+              더보기
+            </button>
           </div>
         )}
       </div>

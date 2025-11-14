@@ -4,7 +4,7 @@ export const navData = [
   { name: '홈', href: 'hero' },
   { name: '소개', href: 'about' },
   { name: '기능', href: 'features' },
-  { name: '가격', href: 'pricing' },
+  // { name: '가격', href: 'pricing' },
   { name: '문의', href: 'contact' },
 ];
 

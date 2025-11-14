@@ -15,11 +15,12 @@ const Navigation = ({ activeSection, onSectionClick }: NavigationProps) => {
   return (
     <>
       <nav className="fixed top-0 left-0 w-full z-20 flex items-center justify-between px-6 sm:px-8 lg:px-16 py-6 bg-black/20 backdrop-blur-sm">
-        <div className="flex items-center space-x-2">
-          <span className="text-white text-xl font-bold tracking-wider">MUGUET</span>
-        </div>
+      <div className="flex items-center space-x-2">
+        <img src="/img/logo_v2.svg" alt="Logo" className="w-9 h-9 pr-2" />
+        <span className="text-white text-xl font-bold tracking-wider">MUGUET</span>
+      </div>
         
-        <div className="hidden md:flex items-center space-x-8">
+        <div className="hidden md:flex items-center space-x-8 mr-20">
           {navData.map((item) => (
             <button 
               key={item.href}

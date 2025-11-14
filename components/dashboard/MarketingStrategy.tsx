@@ -56,7 +56,7 @@ export default function MarketingStrategy() {
   return (
     <div className="w-full">
       {/* 콘텐츠 */}
-      <div className="flex items-center gap-8 mt-24">
+      <div className="flex items-center gap-8 mt-20">
         {/* 왼쪽: 최적의 업로드 시간 */}
         <div className="flex flex-col">
           <span className="text-[#aaaaaa] text-base font-normal leading-[18px] mb-2">

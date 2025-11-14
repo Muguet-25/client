@@ -19,7 +19,7 @@ import { navData, popularFeatures, socialProofData, faqData } from "@/constants/
 
 // Data
 import { pricingPlans } from "@/data/pricing";
-import { bottomCards, processSteps, videoThumbnails, footerSections, socialMediaIcons } from "@/data/sections";
+import { bottomCards, processSteps, videoThumbnails, footerSections } from "@/data/sections";
 
 const Home = () => {
   const router = useRouter();
@@ -85,11 +85,13 @@ const Home = () => {
           className="absolute top-0 left-0 w-full h-full object-cover"
         />
         <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-black/70 via-black/50 to-black/60" />
-        
-        <Navigation 
-          activeSection={activeSection} 
-          onSectionClick={scrollToSection} 
-        />
+        <div className="pr-120">
+          <Navigation 
+            activeSection={activeSection} 
+            onSectionClick={scrollToSection} 
+            
+          />
+        </div>
         
         {/* Main Content */}
         <div className="relative z-10 flex flex-col justify-center h-full px-6 sm:px-8 lg:px-16">
@@ -204,7 +206,7 @@ const Home = () => {
       </section>
 
       {/* Social Proof Section */}
-      <section ref={socialProofRef} className="py-20 px-16 bg-gray-900 text-white">
+      {/* <section ref={socialProofRef} className="py-20 px-16 bg-gray-900 text-white">
         <div className="max-w-6xl mx-auto text-center">
           <h2 className={`text-5xl font-bold mb-12 transition-all duration-1000 ${isSocialProofVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>믿을 수 있는 성과</h2>
           <div className="grid md:grid-cols-4 gap-8 mb-16">
@@ -220,7 +222,7 @@ const Home = () => {
             ))}
           </div>
         </div>
-      </section>
+      </section> */}
 
       
       <section ref={stepsRef} className="py-20 px-16 bg-white">
@@ -249,7 +251,7 @@ const Home = () => {
       </section>
 
       {/* Pricing Section */}
-      <section ref={pricingRef} id="pricing" className="py-20 px-16 bg-gray-50">
+      {/* <section ref={pricingRef} id="pricing" className="py-20 px-16 bg-gray-50">
         <div className="max-w-6xl mx-auto">
           <div className={`text-center mb-16 transition-all duration-1000 ${isPricingVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'}`}>
             <h2 className="text-5xl font-bold text-gray-900 mb-4">합리적인 가격</h2>
@@ -295,7 +297,7 @@ const Home = () => {
             })}
           </div>
         </div>
-      </section>
+      </section> */}
 
       {/* FAQ Section */}
       <section ref={faqRef} id="contact" className="py-20 px-16 bg-white">
@@ -338,18 +340,14 @@ const Home = () => {
       {/* Footer */}
       <footer className="bg-gray-900 text-white py-16 px-16">
         <div className="max-w-6xl mx-auto">
-          <div className="grid md:grid-cols-4 gap-8 mb-8">
-            <div>
+          {/* <div className="grid md:grid-cols-4 gap-8 mb-8"> */}
+            {/* <div>
               <h3 className="text-2xl font-bold mb-4">Muguet</h3>
               <p className="text-gray-400 mb-4">1인 크리에이터를 위한 마케팅 플랫폼</p>
-              <div className="flex space-x-4">
-                {socialMediaIcons.map((icon, index) => (
-                  <a key={index} href="#" className="text-gray-400 hover:text-white transition-colors">{icon}</a>
-                ))}
-        </div>
-      </div>
+            
+      </div> */}
 
-            {footerSections.map((section, index) => (
+            {/* {footerSections.map((section, index) => (
               <div key={index}>
                 <h4 className="text-lg font-bold mb-4">{section.title}</h4>
                 <ul className="space-y-2 text-gray-400">
@@ -360,11 +358,11 @@ const Home = () => {
                   ))}
                 </ul>
               </div>
-            ))}
-          </div>
+            ))} */}
+          {/* </div> */}
 
           <div className="border-t border-gray-800 pt-8 text-center text-gray-400">
-            <p>&copy; 2024 Muguet. All rights reserved.</p>
+            <p>&copy; 2025 Muguet. All rights reserved.</p>
           </div>
         </div>
       </footer>

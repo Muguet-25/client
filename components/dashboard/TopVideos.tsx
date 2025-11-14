@@ -36,7 +36,7 @@ const formatDate = (date?: string) => {
 
 export default function TopVideos({ videos, isLoading = false }: TopVideosProps) {
   return (
-    <div className="h-full rounded-[20px]">
+    <div className="h-full rounded-[20px] mt-20">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h3 className="text-white text-xl font-semibold">

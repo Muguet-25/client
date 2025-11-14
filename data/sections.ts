@@ -45,4 +45,4 @@ export const footerSections: FooterSection[] = [
   { title: '회사', links: ['소개', '채용', '블로그', '뉴스'] }
 ];
 
-export const socialMediaIcons = ['📘', '📷', '🐦', '📺'];
+
