@@ -5,6 +5,7 @@ import ReportHeader from '@/components/report/ReportHeader';
 import Calendar from '@/components/report/Calendar';
 import VideoDetailModal from '@/components/report/VideoDetailModal';
 import { useYouTube } from '@/hooks/useYouTube';
+import { useStore } from '@/lib/store';
 import { useEffect, useState } from 'react';
 
 interface CalendarEvent {
@@ -20,6 +21,8 @@ interface CalendarEvent {
 
 export default function ReportPage() {
   const { isConnected, videos, isLoading, error } = useYouTube();
+  const { isSidebarOpen, isSidebarHovered } = useStore();
+  const isSidebarVisible = isSidebarOpen || isSidebarHovered;
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [selectedVideo, setSelectedVideo] = useState<CalendarEvent | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -57,7 +60,9 @@ export default function ReportPage() {
       <Sidebar />
 
       {/* 메인 콘텐츠 영역 */}
-      <div className="flex-1 ml-[260px]">
+      <div className={`flex-1 transition-all duration-300 ${
+        isSidebarVisible ? 'ml-[260px]' : 'ml-0'
+      }`}>
         {/* 1440px 최대 너비 컨테이너 */}
         <div className="max-w-[1440px] mx-auto">
           <ReportHeader />

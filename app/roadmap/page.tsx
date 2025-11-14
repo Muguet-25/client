@@ -1,8 +1,11 @@
 'use client';
 
 import Sidebar from '@/components/dashboard/Sidebar';
+import { useStore } from '@/lib/store';
 
 export default function RoadmapPage() {
+  const { isSidebarOpen, isSidebarHovered } = useStore();
+  const isSidebarVisible = isSidebarOpen || isSidebarHovered;
 
   return (
     <div className="min-h-screen bg-[#12121E] relative flex">
@@ -10,7 +13,9 @@ export default function RoadmapPage() {
       <Sidebar />
 
       {/* 메인 콘텐츠 영역 */}
-      <div className="flex-1 ml-[260px]">
+      <div className={`flex-1 transition-all duration-300 ${
+        isSidebarVisible ? 'ml-[260px]' : 'ml-0'
+      }`}>
         {/* 1440px 최대 너비 컨테이너 */}
         <div className="max-w-[1440px] mx-auto">
           <div className="px-8 pt-8 pb-4">

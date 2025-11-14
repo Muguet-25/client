@@ -8,6 +8,7 @@ import ReservedVideos from '@/components/dashboard/ReservedVideos';
 import Sidebar from '@/components/dashboard/Sidebar';
 import TopVideos from '@/components/dashboard/TopVideos';
 import { useAuthStore } from '@/lib/useAuthStore';
+import { useStore } from '@/lib/store';
 import { useAverageViews } from '@/hooks/useAverageViews';
 import { useYouTube } from '@/hooks/useYouTube';
 import { Upload } from 'lucide-react';
@@ -15,6 +16,8 @@ import { exportCurrentPageAsPdf } from '@/lib/exportPdf';
 
 export default function Dashboard() {
   const { user } = useAuthStore();
+  const { isSidebarOpen, isSidebarHovered } = useStore();
+  const isSidebarVisible = isSidebarOpen || isSidebarHovered;
   const { isConnected: youtubeConnected, connect: connectYouTube, channel, videos, isLoading: youtubeLoading } = useYouTube();
   const { 
     averageViews, 
@@ -60,7 +63,9 @@ export default function Dashboard() {
       <Sidebar />
 
       {/* 메인 콘텐츠 영역 */}
-      <div className="flex-1 ml-[260px]">
+      <div className={`flex-1 transition-all duration-300 ${
+        isSidebarVisible ? 'ml-[260px]' : 'ml-0'
+      }`}>
         {/* YouTube 연결 오버레이 */}
         {!youtubeConnected && (
           <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] flex items-center justify-center">
