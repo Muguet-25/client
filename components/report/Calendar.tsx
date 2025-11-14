@@ -100,7 +100,7 @@ export default function Calendar({ events = [], onVideoClick }: CalendarProps) {
   const days = getDaysInMonth(currentDate);
   
   return (
-    <div className="max-w-7xl mx-auto px-6 pt-8 pb-8">
+    <div className="w-full">
       {/* 캘린더 헤더 */}
       <div className="flex items-center justify-between mb-6">
           <h2 className="text-2xl font-semibold text-white">
