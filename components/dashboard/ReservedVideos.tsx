@@ -250,7 +250,7 @@ export default function ReservedVideos() {
       <div className="w-full mx-auto mt-20">
         <div className="mb-8">
           <h1 className="text-[#f5f5f5] text-[48px] font-bold leading-[54px]">
-            예약된 동영상
+            영상 리스트
           </h1>
         </div>
         <div className="flex items-center justify-center py-12">
