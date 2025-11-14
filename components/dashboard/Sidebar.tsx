@@ -4,13 +4,15 @@ import { usePathname } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import { useAuthStore } from '@/lib/useAuthStore';
+import { supabase } from '@/utils/config';
 import { 
   LayoutDashboard, 
   Calendar,
   List,
   Star,
   AlertTriangle,
-  User
+  User,
+  LogOut
 } from 'lucide-react';
 
 interface NavigationItem {
@@ -38,6 +40,25 @@ export default function Sidebar() {
       return pathname === '/dashboard';
     }
     return pathname.startsWith(href);
+  };
+
+  // 로그아웃 핸들러
+  const handleLogout = async () => {
+    try {
+      // YouTube 토큰 삭제
+      localStorage.removeItem('youtube_access_token');
+      localStorage.removeItem('youtube_refresh_token');
+      
+      // 구글 로그아웃 (Supabase)
+      await supabase.auth.signOut();
+      
+      // 로그인 페이지로 리다이렉트
+      window.location.href = '/auth/login';
+    } catch (error) {
+      console.error('로그아웃 오류:', error);
+      // 오류가 발생해도 로그인 페이지로 이동
+      window.location.href = '/auth/login';
+    }
   };
 
   return (
@@ -91,13 +112,23 @@ export default function Sidebar() {
 
       {/* User Profile */}
       <div className="py-6 px-6 border-t border-[#3a3b50]">
-        <div className="flex items-center gap-4">
-          <div className="w-11 h-11 rounded-lg bg-transparent flex items-center justify-center flex-shrink-0">
-            <User className="w-6 h-6 text-[#f5f5f5]/50" />
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-4 flex-1 min-w-0">
+            <div className="w-11 h-11 rounded-lg bg-transparent flex items-center justify-center flex-shrink-0">
+              <User className="w-6 h-6 text-[#f5f5f5]/50" />
+            </div>
+            <span className="text-[#f5f5f5]/50 text-base font-normal whitespace-nowrap truncate">
+              {user?.user_metadata?.full_name || '사용자'}
+            </span>
           </div>
-          <span className="text-[#f5f5f5]/50 text-base font-normal whitespace-nowrap">
-            {user?.user_metadata?.full_name || '사용자'}
-          </span>
+          <button
+            onClick={handleLogout}
+            className="flex-shrink-0 p-2 rounded-lg hover:bg-[#2a2a3a] transition-colors group"
+            aria-label="로그아웃"
+            title="로그아웃"
+          >
+            <LogOut className="w-5 h-5 text-[#f5f5f5]/50 group-hover:text-[#ff8953] transition-colors" />
+          </button>
         </div>
       </div>
     </div>
