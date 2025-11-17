@@ -85,13 +85,13 @@ const Home = () => {
           className="absolute top-0 left-0 w-full h-full object-cover"
         />
         <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-br from-black/70 via-black/50 to-black/60" />
-        <div className="pr-120">
+
+        
           <Navigation 
             activeSection={activeSection} 
             onSectionClick={scrollToSection} 
             
           />
-        </div>
         
         {/* Main Content */}
         <div className="relative z-10 flex flex-col justify-center h-full px-6 sm:px-8 lg:px-16">
