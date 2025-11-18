@@ -6,8 +6,10 @@ import Toast from './Toast';
 const ToastContainer = () => {
   const { toasts, removeToast } = useToast();
 
+  if (toasts.length === 0) return null;
+
   return (
-    <div className="fixed inset-0 z-50 pointer-events-none">
+    <div className="fixed top-6 right-6 z-[1000] pointer-events-none flex flex-col gap-3 items-end max-w-[420px] w-full">
       {toasts.map((toast) => (
         <Toast
           key={toast.id}
@@ -15,7 +17,7 @@ const ToastContainer = () => {
           type={toast.type}
           title={toast.title}
           message={toast.message}
-          duration={toast.duration}
+          
           onClose={removeToast}
         />
       ))}

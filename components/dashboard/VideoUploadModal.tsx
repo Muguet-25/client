@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useId } from 'react';
 import { X, CloudUpload, ArrowUp, Sun } from 'lucide-react';
 import { WithContext as ReactTags } from 'react-tag-input';
+import { useToast } from '@/hooks/useToast';
 
 const KeyCodes = { comma: 188, enter: 13 };
 const delimiters = [KeyCodes.comma, KeyCodes.enter];
@@ -47,6 +48,7 @@ export default function VideoUploadModal({ isOpen, onClose }: VideoUploadModalPr
   const timePickerRef = useRef<HTMLDivElement | null>(null);
   const [datePickerView, setDatePickerView] = useState<{ year: number; month: number } | null>(null);
 
+  const { success, error } = useToast();
   const getAccessToken = () => localStorage.getItem('youtube_access_token') || '';
 
   const resetForm = () => {
@@ -894,7 +896,7 @@ export default function VideoUploadModal({ isOpen, onClose }: VideoUploadModalPr
               <button
                 onClick={async () => {
                   if (!videoFile) {
-                    alert('동영상 파일을 선택해주세요.');
+                    error('업로드 준비 필요', '동영상 파일을 선택해주세요.');
                     return;
                   }
 
@@ -904,7 +906,7 @@ export default function VideoUploadModal({ isOpen, onClose }: VideoUploadModalPr
 
                     const accessToken = getAccessToken();
                     if (!accessToken) {
-                      alert('YouTube 액세스 토큰이 필요합니다. 먼저 YouTube 연결을 진행해주세요.');
+                      error('YouTube 연결 필요', 'YouTube 계정을 연결한 뒤 다시 시도해주세요.');
                       setIsUploading(false);
                       return;
                     }
@@ -1003,12 +1005,13 @@ export default function VideoUploadModal({ isOpen, onClose }: VideoUploadModalPr
                       }
                     }
 
-                    alert('업로드가 완료되었습니다.');
+                    success('업로드 완료', scheduleEnabled ? '동영상 예약 업로드가 완료되었습니다.' : '동영상 업로드가 완료되었습니다.');
                     resetForm();
                     onClose();
                   } catch (err) {
                     console.error(err);
-                    alert('업로드 중 오류가 발생했습니다. 콘솔을 확인해주세요.');
+                    const errorMessage = err instanceof Error ? err.message : '업로드 중 오류가 발생했습니다. 콘솔을 확인해주세요.';
+                    error('업로드 실패', errorMessage);
                   } finally {
                     setIsUploading(false);
                     setProgress(null);

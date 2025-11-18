@@ -1,7 +1,7 @@
 "use client";
 
-import { X, CheckCircle, AlertCircle, Info, AlertTriangle } from "lucide-react";
-import { useEffect, useState } from "react";
+import { X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 
 export type ToastType = "success" | "error" | "warning" | "info";
 
@@ -10,103 +10,91 @@ interface ToastProps {
   type: ToastType;
   title: string;
   message?: string;
-  duration?: number;
   onClose: (id: string) => void;
 }
 
 const Toast = ({ 
   id, 
-  type, 
   title, 
   message, 
-  duration = 5000, 
   onClose 
 }: ToastProps) => {
-  const [isVisible, setIsVisible] = useState(true);
+  const [isVisible, setIsVisible] = useState(false);
+  const autoHideTimer = useRef<NodeJS.Timeout | null>(null);
+  const entranceTimer = useRef<number | null>(null);
 
-  useEffect(() => {
-    if (duration > 0) {
-      const timer = setTimeout(() => {
-        setIsVisible(false);
-        // 애니메이션 완료 후 실제로 제거
-        setTimeout(() => onClose(id), 300);
-      }, duration);
-
-      return () => clearTimeout(timer);
-    }
-  }, [id, duration, onClose]);
-
-  const getIcon = () => {
-    switch (type) {
-      case "success":
-        return (
-          <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center">
-            <CheckCircle className="w-5 h-5 text-white" />
-          </div>
-        );
-      case "error":
-        return (
-          <div className="w-8 h-8 bg-red-500 rounded-full flex items-center justify-center">
-            <X className="w-5 h-5 text-white" />
-          </div>
-        );
-      case "warning":
-        return (
-          <div className="w-8 h-8 bg-yellow-500 rounded-full flex items-center justify-center">
-            <AlertTriangle className="w-5 h-5 text-white" />
-          </div>
-        );
-      case "info":
-        return (
-          <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
-            <Info className="w-5 h-5 text-white" />
-          </div>
-        );
-      default:
-        return (
-          <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
-            <Info className="w-5 h-5 text-white" />
-          </div>
-        );
-    }
-  };
-
-  const handleClose = () => {
+  const hideToast = () => {
     setIsVisible(false);
     setTimeout(() => onClose(id), 300);
   };
 
+  useEffect(() => {
+    entranceTimer.current = requestAnimationFrame(() => setIsVisible(true));
+    autoHideTimer.current = setTimeout(() => {
+      hideToast();
+    }, 3000);
+
+    return () => {
+      if (entranceTimer.current) {
+        cancelAnimationFrame(entranceTimer.current);
+      }
+      if (autoHideTimer.current) {
+        clearTimeout(autoHideTimer.current);
+      }
+    };
+  }, [id]);
+
+  const handleClose = () => {
+    if (autoHideTimer.current) {
+      clearTimeout(autoHideTimer.current);
+    }
+    hideToast();
+  };
+
+  const primaryText = '영상이 정상적으로 예약 되었습니다.';
+  const subText = '예약된 영상을 확인 해주세요!';
+
   return (
     <div 
       className={`
-        fixed top-4 left-1/2 transform -translate-x-1/2 z-50 max-w-md w-full
-        bg-gray-800 rounded-xl shadow-2xl border border-gray-700
-        transition-all duration-300 ease-in-out
-        ${isVisible 
-          ? 'animate-in slide-in-from-top-2 fade-in' 
-          : 'animate-out slide-out-to-top-2 fade-out'
-        }
+        pointer-events-auto w-full max-w-[520px] bg-[#1c1c28] border border-[#2b2c3f]/80
+        rounded-[24px] px-4 py-4 shadow-[0px_30px_60px_rgba(3,3,10,0.55)]
+        transition-all duration-300 ease-out
+        ${isVisible ? 'translate-x-0 opacity-100' : 'translate-x-full opacity-0'}
       `}
     >
-      <div className="flex items-start p-5">
-        <div className="flex-shrink-0 mr-4">
-          {getIcon()}
+      <div className="flex items-center gap-6">
+        <div className="w-[60px] h-[60px] rounded-[12px] bg-[#26273c] flex items-center justify-center">
+          <svg
+            width="48"
+            height="48"
+            viewBox="0 0 48 48"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M14 25L20 31L33 18"
+              stroke="#FF8953"
+              strokeWidth="3"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+           
+          </svg>
         </div>
-        
+
         <div className="flex-1 min-w-0">
-          <h4 className="text-base font-semibold text-white mb-1">
-            {title}
-          </h4>
-          {message && (
-            <p className="text-sm text-gray-300 leading-relaxed">
-              {message}
-            </p>
-          )}
+          <p className="text-[16px] font-semibold text-[#f5f5f5] leading-tight">
+            {primaryText}
+          </p>
+          <p className="text-[14px] text-[#f5f5f5]/60 mt-2 leading-tight">
+            {subText}
+          </p>
         </div>
 
         <button
           onClick={handleClose}
-          className="flex-shrink-0 ml-3 p-1 text-gray-400 hover:text-white transition-colors rounded-lg hover:bg-gray-700"
+          className="flex-shrink-0 p-1.5 text-white/30 hover:text-white transition-colors rounded-full hover:bg-white/10"
         >
           <X className="w-4 h-4" />
         </button>
