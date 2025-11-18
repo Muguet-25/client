@@ -6,6 +6,7 @@ import Sidebar from '@/components/dashboard/Sidebar';
 import { useStore } from '@/lib/store';
 import { useYouTube } from '@/hooks/useYouTube';
 import { YouTubeVideo } from '@/lib/youtube/types';
+import { AlertTriangle, Lightbulb, ArrowLeft } from 'lucide-react';
 
 interface VideoItemProps {
   video: YouTubeVideo;
@@ -83,12 +84,147 @@ function VideoItem({ video, onAnalyze }: VideoItemProps) {
   );
 }
 
+// 영상 분석 상세 컴포넌트
+function VideoAnalysisDetail({ video, onBack }: { video: YouTubeVideo; onBack: () => void }) {
+  // 제목 길이 계산
+  const titleLength = video.title?.length || 0;
+  
+  // 업로드 시간 추출 (publishedAt에서)
+  const publishedDate = new Date(video.publishedAt);
+  const uploadHour = publishedDate.getHours();
+  
+  // 키워드 (태그) 추출
+  const keywords = video.snippet?.tags || [];
+  const keywordText = keywords.length > 0 ? keywords.slice(0, 4).join(', ') + (keywords.length > 4 ? '...' : '') : '없음';
+  
+  // 통계 데이터
+  const views = parseInt(video.statistics?.viewCount || '0');
+  const likes = parseInt(video.statistics?.likeCount || '0');
+  const comments = parseInt(video.statistics?.commentCount || '0');
+  
+  // 썸네일
+  const thumbnail = video.thumbnails?.high?.url || video.thumbnails?.medium?.url || video.thumbnails?.default?.url || '';
+  
+  // 제목에서 태그 부분과 메인 제목 분리
+  const titleParts = video.title?.split('|') || [video.title || ''];
+  const mainTitle = titleParts[titleParts.length - 1].trim();
+  const tagTitle = titleParts.length > 1 ? titleParts[0].trim() : '';
+
+  return (
+    <div className="space-y-6">
+      {/* 뒤로가기 버튼 */}
+      <button
+        onClick={onBack}
+        className="flex items-center gap-2 text-[#f5f5f5] hover:text-[#ff8953] transition-colors mb-4"
+      >
+        <ArrowLeft className="w-5 h-5" />
+        <span>목록으로 돌아가기</span>
+      </button>
+
+      {/* 영상 분석결과 섹션 */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* 왼쪽: 분석 결과 */}
+        <div className="space-y-6">
+          {/* 경고 박스 */}
+          <div className="bg-[#ff8953]/20 border border-[#ff8953]/40 rounded-lg p-4 flex items-start gap-3">
+            <AlertTriangle className="w-5 h-5 text-[#ff8953] flex-shrink-0 mt-0.5" />
+            <p className="text-[#f5f5f5] text-base font-normal">
+              CTR이 낮아 초기 노출이 부족했습니다.
+            </p>
+          </div>
+
+          {/* 메트릭 카드들 */}
+          <div className="grid grid-cols-2 gap-4">
+            {/* 제목길이 */}
+            <div className="bg-[#1c1c28] border border-[#3a3b50] rounded-lg p-4">
+              <p className="text-[#aaaaaa] text-sm mb-2">제목길이</p>
+              <p className="text-[#f5f5f5] text-2xl font-bold mb-1">{titleLength}</p>
+              <p className="text-[#aaaaaa] text-xs">(권장 25~30자)</p>
+            </div>
+
+            {/* 업로드시간 */}
+            <div className="bg-[#1c1c28] border border-[#3a3b50] rounded-lg p-4">
+              <p className="text-[#aaaaaa] text-sm mb-2">업로드시간</p>
+              <p className="text-[#f5f5f5] text-2xl font-bold mb-1">{uploadHour}시</p>
+              <p className="text-[#aaaaaa] text-xs">(18시 업로드 권장)</p>
+            </div>
+
+            {/* 키워드 */}
+            <div className="bg-[#1c1c28] border border-[#3a3b50] rounded-lg p-4">
+              <p className="text-[#aaaaaa] text-sm mb-2">키워드</p>
+              <p className="text-[#f5f5f5] text-base font-normal mb-1 line-clamp-2">{keywordText}</p>
+              <p className="text-[#aaaaaa] text-xs">(키워드 부족)</p>
+            </div>
+
+            {/* 썸네일 CTR */}
+            <div className="bg-[#1c1c28] border border-[#3a3b50] rounded-lg p-4">
+              <p className="text-[#aaaaaa] text-sm mb-2">썸네일 CTR</p>
+              <p className="text-[#f5f5f5] text-2xl font-bold mb-1">3.2%</p>
+              <p className="text-[#aaaaaa] text-xs">(평균 이하)</p>
+            </div>
+          </div>
+
+          {/* AI 추천 박스 */}
+          <div className="bg-[#ff8953]/10 border border-[#ff8953]/30 rounded-lg p-4 flex items-start gap-3">
+            <Lightbulb className="w-5 h-5 text-[#ff8953] flex-shrink-0 mt-0.5" />
+            <p className="text-[#f5f5f5] text-sm font-normal leading-relaxed">
+              이번 영상은 CTR이 낮고, 업로드 시간이 늦어 초기 노출이 부족했습니다. 업로드 시간을 18시로 조정하고, 제목 길이를 조금 줄이는 것을 추천 합니다
+            </p>
+          </div>
+        </div>
+
+        {/* 오른쪽: 썸네일 */}
+        <div className="bg-[#1c1c28] border border-[#3a3b50] rounded-lg p-6">
+          <div className="relative w-full aspect-video rounded-lg overflow-hidden mb-4">
+            <Image
+              src={thumbnail}
+              alt={video.title || ''}
+              fill
+              className="object-cover"
+            />
+            {/* 썸네일 오버레이 텍스트 */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent p-4 flex flex-col justify-end">
+              {tagTitle && (
+                <p className="text-white text-sm mb-2">&lt;{tagTitle}&gt;</p>
+              )}
+              <p className="text-white text-2xl font-bold leading-tight">{mainTitle}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 영상 제목 섹션 */}
+      <div className="bg-[#1c1c28] border border-[#3a3b50] rounded-lg p-4">
+        <p className="text-[#aaaaaa] text-sm mb-2">영상 제목</p>
+        <p className="text-[#f5f5f5] text-base font-normal">{video.title}</p>
+      </div>
+
+      {/* 통계 섹션 */}
+      <div className="grid grid-cols-3 gap-4">
+        <div className="bg-[#1c1c28] border border-[#3a3b50] rounded-lg p-6">
+          <p className="text-[#aaaaaa] text-sm mb-2">조회수</p>
+          <p className="text-[#f5f5f5] text-3xl font-bold">{views.toLocaleString()}</p>
+        </div>
+        <div className="bg-[#1c1c28] border border-[#3a3b50] rounded-lg p-6">
+          <p className="text-[#aaaaaa] text-sm mb-2">좋아요 수</p>
+          <p className="text-[#f5f5f5] text-3xl font-bold">{likes.toLocaleString()}</p>
+        </div>
+        <div className="bg-[#1c1c28] border border-[#3a3b50] rounded-lg p-6">
+          <p className="text-[#aaaaaa] text-sm mb-2">구독자 증가 수</p>
+          <p className="text-[#f5f5f5] text-3xl font-bold">41</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function ContentAnalyticsPage() {
   const { isSidebarOpen, isSidebarHovered } = useStore();
   const isSidebarVisible = isSidebarOpen || isSidebarHovered;
   const { videos, isLoading, isConnected, refreshVideos } = useYouTube();
   const [displayedCount, setDisplayedCount] = useState(5);
   const videosPerLoad = 5;
+  const [selectedVideo, setSelectedVideo] = useState<YouTubeVideo | null>(null);
 
   useEffect(() => {
     if (isConnected && videos.length === 0) {
@@ -100,8 +236,14 @@ export default function ContentAnalyticsPage() {
   const hasMore = displayedCount < videos.length;
 
   const handleAnalyze = (videoId: string) => {
-    // TODO: 영상 분석 기능 구현
-    console.log('영상 분석:', videoId);
+    const video = videos.find(v => v.id === videoId);
+    if (video) {
+      setSelectedVideo(video);
+    }
+  };
+
+  const handleBack = () => {
+    setSelectedVideo(null);
   };
 
   const handleLoadMore = () => {
@@ -123,53 +265,61 @@ export default function ContentAnalyticsPage() {
           <div className="bg-[#12121E] px-8 pt-8 pb-4">
             <div className="flex justify-between items-start">
               <div>
-                <h1 className="text-[3rem] font-bold text-white">콘텐츠 문제 분석</h1>
-                <p className="text-white text-sm">콘텐츠의 문제점을 분석하고 개선 방안을 제시합니다.</p>
+                <h1 className="text-[3rem] font-bold text-white">
+                  {selectedVideo ? '영상 퍼포먼스 분석' : '콘텐츠 문제 분석'}
+                </h1>
+                <p className="text-white text-sm">
+                  {selectedVideo ? 'AI가 영상의 문제점을 발견하고 해결해줘요' : '콘텐츠의 문제점을 분석하고 개선 방안을 제시합니다.'}
+                </p>
               </div>
             </div>
           </div>
           
           {/* 메인 컨텐츠 */}
           <div className="px-8 pt-8 pb-8">
-            {!isConnected ? (
-              <div className="bg-[#1c1c28] border border-[#3a3b50] rounded-lg p-8 text-center">
-                <h2 className="text-xl font-semibold text-white mb-4">YouTube 연결 필요</h2>
-                <p className="text-gray-400">
-                  콘텐츠 분석을 하려면 YouTube 계정을 연결해주세요.
-                </p>
-              </div>
-            ) : isLoading ? (
-              <div className="bg-[#1c1c28] border border-[#3a3b50] rounded-lg p-8 text-center">
-                <p className="text-white">동영상 데이터를 불러오는 중...</p>
-              </div>
-            ) : currentVideos.length === 0 ? (
-              <div className="bg-[#1c1c28] border border-[#3a3b50] rounded-lg p-8 text-center">
-                <p className="text-white">동영상이 없습니다.</p>
-              </div>
+            {selectedVideo ? (
+              <VideoAnalysisDetail video={selectedVideo} onBack={handleBack} />
             ) : (
-              <div className="bg-[#1c1c28] border border-[#3a3b50] rounded-lg">
-                <div className="p-6">
-                  {currentVideos.map((video) => (
-                    <VideoItem
-                      key={video.id}
-                      video={video}
-                      onAnalyze={handleAnalyze}
-                    />
-                  ))}
+              !isConnected ? (
+                <div className="p-8 text-center">
+                  <h2 className="text-xl font-semibold text-white mb-4">YouTube 연결 필요</h2>
+                  <p className="text-gray-400">
+                    콘텐츠 분석을 하려면 YouTube 계정을 연결해주세요.
+                  </p>
                 </div>
-
-                {/* 더보기 버튼 */}
-                {hasMore && (
-                  <div className="flex justify-center items-center pb-6">
-                    <button
-                      onClick={handleLoadMore}
-                      className="px-6 py-3 bg-[#1c1c28] border border-[#3a3b50] rounded-lg text-white text-base font-medium hover:bg-[#2a2a3a] hover:border-[#ff8953] transition-colors"
-                    >
-                      더보기
-                    </button>
+              ) : isLoading ? (
+                <div className="p-8 text-center">
+                  <p className="text-white">동영상 데이터를 불러오는 중...</p>
+                </div>
+              ) : currentVideos.length === 0 ? (
+                <div className="p-8 text-center">
+                  <p className="text-white">동영상이 없습니다.</p>
+                </div>
+              ) : (
+                <div>
+                  <div className="p-6">
+                    {currentVideos.map((video) => (
+                      <VideoItem
+                        key={video.id}
+                        video={video}
+                        onAnalyze={handleAnalyze}
+                      />
+                    ))}
                   </div>
-                )}
-              </div>
+
+                  {/* 더보기 버튼 */}
+                  {hasMore && (
+                    <div className="flex justify-center items-center pb-6">
+                      <button
+                        onClick={handleLoadMore}
+                        className="px-6 py-3 bg-[#1c1c28] border border-[#3a3b50] rounded-lg text-white text-base font-medium hover:bg-[#2a2a3a] hover:border-[#ff8953] transition-colors"
+                      >
+                        더보기
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )
             )}
           </div>
         </div>
