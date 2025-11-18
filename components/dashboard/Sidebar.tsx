@@ -29,7 +29,7 @@ const navigationItems: NavigationItem[] = [
   { name: '대시보드', href: '/dashboard', icon: LayoutDashboard, iconName: 'dashboard' },
   { name: '리포트', href: '/report', icon: Calendar, iconName: 'calendar_today' },
   { name: '트렌드', href: '/trending', icon: Star, iconName: 'kid_star' },
-  { name: '콘텐츠 문제 분석', href: '/analytics', icon: AlertTriangle, iconName: 'warning' },
+  { name: '콘텐츠 문제 분석', href: '/content_analytics', icon: AlertTriangle, iconName: 'warning' },
 ];
 
 export default function Sidebar() {

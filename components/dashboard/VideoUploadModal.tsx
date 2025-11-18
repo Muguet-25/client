@@ -11,9 +11,10 @@ const delimiters = [KeyCodes.comma, KeyCodes.enter];
 interface VideoUploadModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onUploadSuccess?: () => void; // 업로드 완료 시 호출될 콜백
 }
 
-export default function VideoUploadModal({ isOpen, onClose }: VideoUploadModalProps) {
+export default function VideoUploadModal({ isOpen, onClose, onUploadSuccess }: VideoUploadModalProps) {
   const getTodayDateString = () => {
     const d = new Date();
     const y = d.getFullYear();
@@ -1008,6 +1009,10 @@ export default function VideoUploadModal({ isOpen, onClose }: VideoUploadModalPr
                     success('업로드 완료', scheduleEnabled ? '동영상 예약 업로드가 완료되었습니다.' : '동영상 업로드가 완료되었습니다.');
                     resetForm();
                     onClose();
+                    // 업로드 완료 후 콜백 호출 (캐시 무효화 및 새로고침을 위해)
+                    if (onUploadSuccess) {
+                      onUploadSuccess();
+                    }
                   } catch (err) {
                     console.error(err);
                     const errorMessage = err instanceof Error ? err.message : '업로드 중 오류가 발생했습니다. 콘솔을 확인해주세요.';

@@ -39,6 +39,9 @@ interface UseYouTubeReturn {
   // 새로운 통계 관련 메서드들
   getVideoStatistics: (videoId: string) => Promise<{ viewCount: number; likeCount: number; commentCount: number }>;
   getMultipleVideoStatistics: (videoIds: string[]) => Promise<Array<{ id: string; viewCount: number; likeCount: number; commentCount: number }>>;
+  
+  // 캐시 관리
+  invalidateVideosCache: () => void;
 }
 
 export const useYouTube = (): UseYouTubeReturn => {
@@ -228,6 +231,13 @@ export const useYouTube = (): UseYouTubeReturn => {
     return await api.getMultipleVideoStatistics(videoIds);
   }, [api]);
 
+  // 비디오 목록 캐시 무효화
+  const invalidateVideosCache = useCallback(() => {
+    if (api) {
+      api.invalidateVideosCache();
+    }
+  }, [api]);
+
   // 한 번만 시도하는 플래그들
   const [hasTriedChannel, setHasTriedChannel] = useState(false);
   const [hasTriedVideos, setHasTriedVideos] = useState(false);
@@ -264,5 +274,6 @@ export const useYouTube = (): UseYouTubeReturn => {
     refreshDailyData,
     getVideoStatistics,
     getMultipleVideoStatistics,
+    invalidateVideosCache,
   };
 };

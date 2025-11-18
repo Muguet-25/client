@@ -133,6 +133,31 @@ export class YouTubeAPI {
     }
   }
 
+  // 비디오 목록 캐시만 무효화 (예약 완료 시 즉시 반영을 위해)
+  public invalidateVideosCache(): void {
+    const keysToDelete: string[] = [];
+    this.cache.forEach((value, key) => {
+      if (key.startsWith('videos_')) {
+        keysToDelete.push(key);
+      }
+    });
+    
+    keysToDelete.forEach(key => {
+      this.cache.delete(key);
+      // localStorage에서도 제거
+      try {
+        const persistentKey = this.PERSISTENT_CACHE_PREFIX + key;
+        localStorage.removeItem(persistentKey);
+      } catch (error) {
+        console.error('비디오 캐시 제거 실패:', error);
+      }
+    });
+    
+    if (keysToDelete.length > 0) {
+      console.log(`비디오 목록 캐시 무효화 완료: ${keysToDelete.length}개 항목`);
+    }
+  }
+
   private async makeRequest<T>(url: string, params: Record<string, string> = {}): Promise<T> {
     const searchParams = new URLSearchParams(params);
 

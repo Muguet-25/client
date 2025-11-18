@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { ArrowRight } from 'lucide-react';
 import VideoUploadModal from './VideoUploadModal';
+import { useYouTube } from '@/hooks/useYouTube';
 
 interface UploadRecommendation {
   success: boolean;
@@ -23,6 +24,7 @@ export default function MarketingStrategy() {
   const [error, setError] = useState<string | null>(null);
   const [extractedTime, setExtractedTime] = useState<string>('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const { invalidateVideosCache, refreshVideos } = useYouTube();
   useEffect(() => {
     const fetchRecommendation = async () => {
       try {
@@ -98,6 +100,11 @@ export default function MarketingStrategy() {
       <VideoUploadModal 
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
+        onUploadSuccess={async () => {
+          // 업로드 완료 후 비디오 목록 캐시 무효화 및 새로고침
+          invalidateVideosCache();
+          await refreshVideos();
+        }}
       />
     </div>
   );
