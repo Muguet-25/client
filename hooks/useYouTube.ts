@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { YouTubeAPI } from '@/lib/youtube/api';
-import { YouTubeChannel, YouTubeVideo, YouTubeAnalytics, YouTubeAnalyticsData } from '@/lib/youtube/types';
+import { YouTubeChannel, YouTubeVideo, YouTubeAnalytics, YouTubeAnalyticsData, YouTubeAgeGroupData } from '@/lib/youtube/types';
 
 // 환경 변수 검증 함수
 const validateYouTubeConfig = () => {
@@ -39,6 +39,9 @@ interface UseYouTubeReturn {
   // 새로운 통계 관련 메서드들
   getVideoStatistics: (videoId: string) => Promise<{ viewCount: number; likeCount: number; commentCount: number }>;
   getMultipleVideoStatistics: (videoIds: string[]) => Promise<Array<{ id: string; viewCount: number; likeCount: number; commentCount: number }>>;
+  
+  // 연령대 데이터
+  getAgeGroupData: (channelId: string, startDate: string, endDate: string) => Promise<YouTubeAgeGroupData[]>;
   
   // 캐시 관리
   invalidateVideosCache: () => void;
@@ -231,6 +234,14 @@ export const useYouTube = (): UseYouTubeReturn => {
     return await api.getMultipleVideoStatistics(videoIds);
   }, [api]);
 
+  // 연령대별 시청자 데이터 가져오기
+  const getAgeGroupData = useCallback(async (channelId: string, startDate: string, endDate: string) => {
+    if (!api) {
+      throw new Error('YouTube API가 연결되지 않았습니다.');
+    }
+    return await api.getAgeGroupData(channelId, startDate, endDate);
+  }, [api]);
+
   // 비디오 목록 캐시 무효화
   const invalidateVideosCache = useCallback(() => {
     if (api) {
@@ -274,6 +285,7 @@ export const useYouTube = (): UseYouTubeReturn => {
     refreshDailyData,
     getVideoStatistics,
     getMultipleVideoStatistics,
+    getAgeGroupData,
     invalidateVideosCache,
   };
 };

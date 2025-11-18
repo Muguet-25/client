@@ -83,6 +83,11 @@ export interface YouTubeAnalyticsData {
   estimatedRevenue: number;
 }
 
+export interface YouTubeAgeGroupData {
+  ageGroup: string;
+  percentage: number;
+}
+
 export interface YouTubeError {
   error: {
     code: number;

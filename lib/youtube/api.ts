@@ -3,6 +3,7 @@ import {
   YouTubeVideo, 
   YouTubeAnalytics, 
   YouTubeAnalyticsData,
+  YouTubeAgeGroupData,
   YouTubeError 
 } from './types';
 
@@ -673,6 +674,72 @@ export class YouTubeAPI {
       impressions: 0,
       impressionsClickable: 0,
     };
+  }
+
+  // 연령대별 시청자 데이터 가져오기
+  async getAgeGroupData(
+    channelId: string,
+    startDate: string,
+    endDate: string
+  ): Promise<YouTubeAgeGroupData[]> {
+    try {
+      const params = {
+        ids: `channel==${channelId}`,
+        startDate,
+        endDate,
+        dimensions: 'ageGroup',
+        metrics: 'viewerPercentage',
+      };
+
+      const response = await this.makeRequest<{
+        rows: Array<[string, number]>;
+        columnHeaders: Array<{ name: string; dataType: string }>;
+      }>(`${YOUTUBE_ANALYTICS_API_BASE}/reports`, params);
+
+      if (!response.rows || response.rows.length === 0) {
+        console.log('연령대 데이터가 없습니다.');
+        return [];
+      }
+
+      // YouTube API의 연령대 형식을 우리 형식으로 변환
+      const ageGroupMap: Record<string, string> = {
+        'age13-17': '10',
+        'age18-24': '20',
+        'age25-34': '30',
+        'age35-44': '40+',
+        'age45-54': '40+',
+        'age55-64': '40+',
+        'age65-': '40+',
+      };
+
+      // 연령대별로 그룹화하고 합산
+      const groupedData: Record<string, number> = {};
+      
+      response.rows.forEach(([ageGroup, percentage]) => {
+        const mappedAge = ageGroupMap[ageGroup] || '40+';
+        if (!groupedData[mappedAge]) {
+          groupedData[mappedAge] = 0;
+        }
+        groupedData[mappedAge] += percentage;
+      });
+
+      // 배열로 변환하고 정렬
+      const result: YouTubeAgeGroupData[] = Object.entries(groupedData)
+        .map(([ageGroup, percentage]) => ({
+          ageGroup,
+          percentage: Math.round(percentage * 100) / 100, // 소수점 2자리까지
+        }))
+        .sort((a, b) => {
+          // 10, 20, 30, 40+ 순서로 정렬
+          const order: Record<string, number> = { '10': 1, '20': 2, '30': 3, '40+': 4 };
+          return (order[a.ageGroup] || 99) - (order[b.ageGroup] || 99);
+        });
+
+      return result;
+    } catch (error) {
+      console.error('연령대 데이터 가져오기 실패:', error);
+      return [];
+    }
   }
 
   // 시간을 포맷팅하는 헬퍼 함수
