@@ -156,7 +156,7 @@ export default function ReportPage() {
           ) : (
             <div className="px-8 pt-8 pb-8">
               {/* 업로드 루틴 분석 */}
-              <UploadRoutine videos={videos} />
+              {/* <UploadRoutine videos={videos} /> */}
               
              
               {/* 캘린더 */}
