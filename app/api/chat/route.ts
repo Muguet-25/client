@@ -2,23 +2,23 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import OpenAI from 'openai';
 
+export const runtime = 'edge'; // 가능하면 edge 런타임 사용 (스트리밍에 유리)
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
 // 서비스 역할 키 사용 (RLS 우회, 하지만 user_id 검증은 필수)
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabaseServiceKey =
+  process.env.SUPABASE_SERVICE_ROLE_KEY ||
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 const supabase = createClient(supabaseUrl, supabaseServiceKey, {
   auth: {
     autoRefreshToken: false,
-    persistSession: false
-  }
+    persistSession: false,
+  },
 });
 
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY!
+  apiKey: process.env.OPENAI_API_KEY!,
 });
-
-
-
 
 export async function POST(request: NextRequest) {
   try {
@@ -40,7 +40,10 @@ export async function POST(request: NextRequest) {
         .from('conversations')
         .insert({
           user_id: userId,
-          title: message.length > 30 ? message.substring(0, 30) + '...' : message,
+          title:
+            message.length > 30
+              ? message.substring(0, 30) + '...'
+              : message,
         })
         .select('id')
         .single();
@@ -103,7 +106,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // OpenAI API 호출
     const messages = history.map((msg) => ({
       role: msg.role as 'user' | 'assistant',
       content: msg.content,
@@ -113,35 +115,56 @@ export async function POST(request: NextRequest) {
     let channelContext = '';
     try {
       const token = accessToken || request.headers.get('x-youtube-token');
-      
+
       if (token) {
         const { YouTubeAPI } = await import('@/lib/youtube/api');
         const youtubeAPI = new YouTubeAPI(token);
-        
+
         try {
           const channel = await youtubeAPI.getChannelInfo();
           const videos = await youtubeAPI.getVideos(undefined, 5);
-          
+
           const endDate = new Date().toISOString().split('T')[0];
-          const startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-          const analytics = await youtubeAPI.getChannelAnalytics(channel.id, startDate, endDate);
-          
+          const startDate = new Date(
+            Date.now() - 30 * 24 * 60 * 60 * 1000
+          )
+            .toISOString()
+            .split('T')[0];
+          const analytics = await youtubeAPI.getChannelAnalytics(
+            channel.id,
+            startDate,
+            endDate
+          );
+
           channelContext = `
 사용자의 채널 데이터:
 - 채널명: ${channel.title}
-- 구독자 수: ${parseInt(channel.statistics.subscriberCount || '0').toLocaleString()}명
+- 구독자 수: ${parseInt(
+            channel.statistics.subscriberCount || '0'
+          ).toLocaleString()}명
 - 총 영상 수: ${channel.statistics.videoCount}개
 - 최근 30일 조회수: ${analytics.views.toLocaleString()}
-- 최근 30일 평균 시청 지속시간: ${analytics.averageViewDuration}
+- 최근 30일 평균 시청 지속시간: ${
+            analytics.averageViewDuration
+          }
 - 최근 30일 구독자 증가: ${analytics.subscribersGained}명
 
 최근 영상 5개:
-${videos.map((v, i) => `
+${videos
+  .map(
+    (v, i) => `
 ${i + 1}. ${v.title}
-   - 조회수: ${parseInt(v.statistics.viewCount || '0').toLocaleString()}
-   - 좋아요: ${parseInt(v.statistics.likeCount || '0').toLocaleString()}
-   - 업로드일: ${new Date(v.publishedAt).toLocaleDateString('ko-KR')}
-`).join('')}
+   - 조회수: ${parseInt(
+     v.statistics.viewCount || '0'
+   ).toLocaleString()}
+   - 좋아요: ${parseInt(
+     v.statistics.likeCount || '0'
+   ).toLocaleString()}
+   - 업로드일: ${new Date(
+     v.publishedAt
+   ).toLocaleDateString('ko-KR')}`
+  )
+  .join('')}
 `;
         } catch (error) {
           console.error('채널 데이터 가져오기 실패:', error);
@@ -150,15 +173,14 @@ ${i + 1}. ${v.title}
     } catch (error) {
       console.error('채널 데이터 처리 오류:', error);
     }
-    
-    const completion = await openai.chat.completions.create({
-      model: 'gpt-4o-mini',
-      messages: [
-        {
-          role: "system",
-          content: `당신은 사용자의 유튜브 채널 데이터를 기반으로 맞춤형 조언을 제공하는 AI 코치입니다. 
 
-${channelContext ? `현재 사용자의 채널 데이터가 제공되었습니다. 이 데이터를 기반으로 개인화된 조언을 제공하세요.` : '채널 데이터가 제공되지 않았습니다. 일반적인 유튜브 전략과 최신 트렌드를 바탕으로 조언을 제공하세요.'}
+    const systemPrompt = `당신은 사용자의 유튜브 채널 데이터를 기반으로 맞춤형 조언을 제공하는 AI 코치입니다. 
+
+${
+  channelContext
+    ? `현재 사용자의 채널 데이터가 제공되었습니다. 이 데이터를 기반으로 개인화된 조언을 제공하세요.`
+    : '채널 데이터가 제공되지 않았습니다. 일반적인 유튜브 전략과 최신 트렌드를 바탕으로 조언을 제공하세요.'
+}
 
 당신의 핵심 역할:
 1. 사용자의 채널 데이터(상위 영상 주제, 길이, 썸네일 스타일, 시청자 연령/성비, 업로드 패턴 등)를 분석하여 개인화된 조언 제공
@@ -169,49 +191,112 @@ ${channelContext ? `현재 사용자의 채널 데이터가 제공되었습니�
 
 답변 규칙:
 - 마크다운 문법(#, ##, *, -, **, \`\`\` 등)은 절대로 사용하지 않고 순수한 텍스트 형식으로만 답변
+- 마크다운 문법 제발 사용 금지
 - 숫자, 통계, 비교 데이터를 적극 활용
 - 사용자의 채널 특성에 맞춘 개인화된 조언 제공
 - 실행 가능한 구체적 액션 위주로 답변
 - 유튜버가 실제로 쓰는 방식처럼 자연스럽고 실용적인 설명
-${channelContext ? '- 제공된 채널 데이터의 구체적인 숫자와 통계를 활용하여 답변하세요.' : ''}`
-        },
+${
+  channelContext
+    ? '- 제공된 채널 데이터의 구체적인 숫자와 통계를 활용하여 답변하세요.'
+    : ''
+}`;
+
+    // OpenAI 스트리밍 호출
+    const completion = await openai.chat.completions.create({
+      model: 'gpt-4o-mini',
+      stream: true,
+      messages: [
+        { role: 'system', content: systemPrompt },
         ...messages,
       ],
       temperature: 0.7,
       max_tokens: 1500,
     });
 
-    const aiResponse = completion.choices[0]?.message?.content || '응답을 생성할 수 없습니다.';
+    const encoder = new TextEncoder();
+    let fullResponse = '';
 
-    // AI 응답 저장
-    const { error: aiMsgError } = await supabase
-      .from('messages')
-      .insert({
-        conversation_id: currentConversationId,
-        role: 'assistant',
-        content: aiResponse,
-      });
+    // 서버 → 클라이언트 스트림
+    const stream = new ReadableStream({
+      async start(controller) {
+        try {
+          // 1) 먼저 메타 정보(conversationId)를 JSON 한 줄로 보냄
+          const meta = JSON.stringify({
+            type: 'meta',
+            conversationId: currentConversationId,
+          });
+          controller.enqueue(encoder.encode(meta + '\n'));
 
-    if (aiMsgError) {
-      console.error('AI 메시지 저장 실패:', aiMsgError);
-      return NextResponse.json(
-        { error: 'AI 응답 저장에 실패했습니다.' },
-        { status: 500 }
-      );
-    }
+          // 2) OpenAI 토큰을 읽으면서 계속 전송
+          for await (const chunk of completion) {
+            const delta = chunk.choices[0]?.delta?.content || '';
+            if (!delta) continue;
 
-    // 대화방 제목 업데이트 (첫 메시지인 경우)
-    if (history.length === 1) {
-      const title = message.length > 30 ? message.substring(0, 30) + '...' : message;
-      await supabase
-        .from('conversations')
-        .update({ title })
-        .eq('id', currentConversationId);
-    }
+            fullResponse += delta;
 
-    return NextResponse.json({
-      message: aiResponse,
-      conversationId: currentConversationId,
+            const payload = JSON.stringify({
+              type: 'delta',
+              content: delta,
+            });
+            controller.enqueue(encoder.encode(payload + '\n'));
+          }
+
+          // 3) 전체 응답이 완성된 뒤 Supabase에 저장
+          const aiResponse =
+            fullResponse || '응답을 생성할 수 없습니다.';
+
+          const { error: aiMsgError } = await supabase
+            .from('messages')
+            .insert({
+              conversation_id: currentConversationId,
+              role: 'assistant',
+              content: aiResponse,
+            });
+
+          if (aiMsgError) {
+            console.error('AI 메시지 저장 실패:', aiMsgError);
+          }
+
+          // 첫 메시지인 경우 대화방 제목 업데이트
+          if (history.length === 1) {
+            const title =
+              message.length > 30
+                ? message.substring(0, 30) + '...'
+                : message;
+            await supabase
+              .from('conversations')
+              .update({ title })
+              .eq('id', currentConversationId);
+          }
+
+          // 마지막에 done 이벤트 하나 더 보내도 됨 (선택)
+          const doneEvent = JSON.stringify({ type: 'done' });
+          controller.enqueue(encoder.encode(doneEvent + '\n'));
+
+          controller.close();
+        } catch (err) {
+          console.error('스트리밍 중 오류:', err);
+          // 에러 정보를 클라이언트로 보내고 스트림 종료
+          const errorEvent = JSON.stringify({
+            type: 'error',
+            message: '스트리밍 중 오류가 발생했습니다.',
+          });
+          try {
+            controller.enqueue(encoder.encode(errorEvent + '\n'));
+          } catch (_) {
+            // ignore
+          }
+          controller.error(err);
+        }
+      },
+    });
+
+    return new NextResponse(stream, {
+      headers: {
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Cache-Control': 'no-cache, no-transform',
+      },
     });
   } catch (error) {
     console.error('챗봇 API 오류:', error);
@@ -221,4 +306,3 @@ ${channelContext ? '- 제공된 채널 데이터의 구체적인 숫자와 통�
     );
   }
 }
-
