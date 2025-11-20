@@ -408,7 +408,7 @@ export default function ContentAnalyticsPage() {
             <div className="flex justify-between items-start">
               <div>
                 <h1 className="text-[3rem] font-bold text-white">
-                  {selectedVideo ? '영상 퍼포먼스 분석' : '콘텐츠 문제 분석'}
+                  콘텐츠 문제 분석
                 </h1>
                 <p className="text-white text-sm">
                   {selectedVideo ? 'AI가 영상의 문제점을 발견하고 해결해줘요' : '콘텐츠의 문제점을 분석하고 개선 방안을 제시합니다.'}
