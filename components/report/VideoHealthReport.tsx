@@ -7,7 +7,6 @@ import { useYouTube } from '@/hooks/useYouTube';
 
 interface VideoHealthReportProps {
   video: YouTubeVideo;
-  avgCtr?: number;
   avgWatchDuration?: number;
   avgSubscriberGain?: number;
   avgEngagement?: number;
@@ -15,14 +14,12 @@ interface VideoHealthReportProps {
 
 export default function VideoHealthReport({
   video,
-  avgCtr: propAvgCtr,
   avgWatchDuration: propAvgWatchDuration,
   avgSubscriberGain: propAvgSubscriberGain,
   avgEngagement: propAvgEngagement
 }: VideoHealthReportProps) {
   const { isConnected, channel, videos, refreshAnalytics } = useYouTube();
   const [videoAnalytics, setVideoAnalytics] = useState<any>(null);
-  const [avgCtr, setAvgCtr] = useState(propAvgCtr || 5.0);
   const [avgWatchDuration, setAvgWatchDuration] = useState(propAvgWatchDuration || 60);
   const [avgSubscriberGain, setAvgSubscriberGain] = useState(propAvgSubscriberGain || 50);
   const [avgEngagement, setAvgEngagement] = useState(propAvgEngagement || 3.5);
@@ -61,8 +58,6 @@ export default function VideoHealthReport({
           const channelEndDate = new Date().toISOString().split('T')[0];
           const channelStartDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
           const channelAnalytics = await youtubeAPI.getChannelAnalytics(channel.id, channelStartDate, channelEndDate);
-          
-          setAvgCtr(channelAnalytics.ctr || 0);
           
           // 평균 시청 지속시간을 초로 변환
           const avgDurationSeconds = parseDurationToSeconds(channelAnalytics.averageViewDuration);
@@ -106,13 +101,6 @@ export default function VideoHealthReport({
     
     let score = 50; // 기본 점수
     
-    // CTR 점수
-    const ctr = videoAnalytics?.ctr || 0;
-    if (ctr >= avgCtr * 1.2) score += 15;
-    else if (ctr >= avgCtr) score += 10;
-    else if (ctr >= avgCtr * 0.8) score += 5;
-    else score -= 10;
-    
     // 참여도 점수
     const engagement = views > 0 ? ((likes + comments) / views) * 100 : 0;
     if (engagement >= avgEngagement * 1.2) score += 15;
@@ -133,7 +121,7 @@ export default function VideoHealthReport({
     }
     
     return Math.max(0, Math.min(100, score));
-  }, [video, videoAnalytics, avgCtr, avgEngagement]);
+  }, [video, videoAnalytics, avgEngagement]);
 
   // 점수에 따른 색상
   const getScoreColor = (score: number) => {
@@ -147,15 +135,6 @@ export default function VideoHealthReport({
     const issues: Array<{ title: string; description: string; severity: 'high' | 'medium' | 'low' }> = [];
     
     if (!videoAnalytics) return issues;
-    
-    const ctr = videoAnalytics.ctr || 0;
-    if (ctr < avgCtr * 0.8 && avgCtr > 0) {
-      issues.push({
-        title: 'CTR 낮음',
-        description: `CTR이 ${ctr.toFixed(2)}%로 채널 평균(${avgCtr.toFixed(2)}%) 대비 낮습니다. 썸네일/제목을 재검토하세요.`,
-        severity: 'high'
-      });
-    }
     
     const durationSeconds = parseDurationToSeconds(videoAnalytics.averageViewDuration);
     const videoDurationSeconds = parseDurationToSeconds(video.duration || 'PT0S');
@@ -183,7 +162,7 @@ export default function VideoHealthReport({
     }
     
     return issues;
-  }, [videoAnalytics, video, avgCtr, avgEngagement]);
+  }, [videoAnalytics, video, avgEngagement]);
 
   const fallbackCauses = [
     '인트로가 길거나 핵심 메시지 전달이 늦어 초반 이탈이 발생합니다.',
@@ -215,8 +194,6 @@ export default function VideoHealthReport({
               publishedAt: video.publishedAt,
             },
             metrics: {
-              ctr: videoAnalytics.ctr || 0,
-              avgCtr,
               retentionRate,
               watchDuration: durationSeconds,
               videoDuration: videoDurationSeconds,
@@ -247,7 +224,7 @@ export default function VideoHealthReport({
     };
 
     fetchAiInsights();
-  }, [isDataReady, videoAnalytics, video, avgCtr, avgEngagement]);
+  }, [isDataReady, videoAnalytics, video, avgEngagement]);
 
   useEffect(() => {
     if (isDataReady) {
@@ -295,14 +272,8 @@ export default function VideoHealthReport({
             </div>
 
             {/* 항목별 점수 */}
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {[
-                { 
-                  label: 'CTR', 
-                  value: videoAnalytics?.ctr || 0, 
-                  avg: avgCtr,
-                  unit: '%'
-                },
                 { 
                   label: '시청 지속시간', 
                   value: videoAnalytics ? parseDurationToSeconds(videoAnalytics.averageViewDuration) : 0, 

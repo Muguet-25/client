@@ -90,7 +90,6 @@ function VideoItem({ video, onAnalyze }: VideoItemProps) {
 function VideoAnalysisDetail({ video, onBack }: { video: YouTubeVideo; onBack: () => void }) {
   const { isConnected, channel, videos } = useYouTube();
   const [videoAnalytics, setVideoAnalytics] = useState<any>(null);
-  const [channelAvgCtr, setChannelAvgCtr] = useState(0);
   const [channelSubscribersGained, setChannelSubscribersGained] = useState(0);
   const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(false);
   const [avgTitleLength, setAvgTitleLength] = useState(0);
@@ -116,17 +115,9 @@ function VideoAnalysisDetail({ video, onBack }: { video: YouTubeVideo; onBack: (
         const analytics = await youtubeAPI.getVideoAnalytics(video.id, startDate, endDate);
         setVideoAnalytics(analytics);
 
-        // 채널 평균 CTR (Reach Analytics에서 가져오기)
+        // 채널 Analytics에서 구독자 증가 가져오기
         const channelEndDate = new Date().toISOString().split('T')[0];
         const channelStartDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-        try {
-          const reachAnalytics = await youtubeAPI.getChannelReachAnalytics(channel.id, channelStartDate, channelEndDate);
-          setChannelAvgCtr(reachAnalytics.averageCtr || 0);
-        } catch (error) {
-          console.warn('Reach Analytics 가져오기 실패, 기본값 사용:', error);
-        }
-
-        // 채널 Analytics에서 구독자 증가 가져오기
         const channelAnalytics = await youtubeAPI.getChannelAnalytics(channel.id, channelStartDate, channelEndDate);
         // 비디오별 구독자 증가는 추정 (채널 전체 증가 / 비디오 수)
         const estimatedSubGain = videos.length > 0 ? Math.round(channelAnalytics.subscribersGained / videos.length) : 0;
@@ -219,9 +210,6 @@ function VideoAnalysisDetail({ video, onBack }: { video: YouTubeVideo; onBack: (
   const mainTitle = titleParts[titleParts.length - 1].trim();
   const tagTitle = titleParts.length > 1 ? titleParts[0].trim() : '';
 
-  // 실제 CTR 값
-  const actualCtr = videoAnalytics?.ctr || 0;
-
   return (
     <div className="space-y-6">
       {/* 뒤로가기 버튼 */}
@@ -273,21 +261,6 @@ function VideoAnalysisDetail({ video, onBack }: { video: YouTubeVideo; onBack: (
                  keywords.length < 3 ? '(키워드 부족)' :
                  keywords.length < 5 ? '(키워드 적정)' :
                  '(키워드 충분)'}
-              </p>
-            </div>
-
-            {/* 썸네일 CTR */}
-            <div className="bg-[#1c1c28] border border-[#3a3b50] rounded-lg p-4">
-              <p className="text-[#aaaaaa] text-sm mb-2">썸네일 CTR</p>
-              <p className="text-[#f5f5f5] text-2xl font-bold mb-1">
-                {isLoadingAnalytics ? '...' : `${actualCtr.toFixed(2)}%`}
-              </p>
-              <p className="text-[#aaaaaa] text-xs">
-                {isLoadingAnalytics ? '로딩 중...' : 
-                 channelAvgCtr > 0 && actualCtr < channelAvgCtr * 0.8 ? `(평균 ${channelAvgCtr.toFixed(2)}% 이하)` :
-                 channelAvgCtr > 0 && actualCtr >= channelAvgCtr * 1.2 ? `(평균 ${channelAvgCtr.toFixed(2)}% 이상)` :
-                 channelAvgCtr > 0 ? `(평균 ${channelAvgCtr.toFixed(2)}% 수준)` :
-                 '(데이터 없음)'}
               </p>
             </div>
           </div>
@@ -411,7 +384,7 @@ export default function ContentAnalyticsPage() {
                   콘텐츠 문제 분석
                 </h1>
                 <p className="text-white text-sm">
-                  {selectedVideo ? 'AI가 영상의 문제점을 발견하고 해결해줘요' : '콘텐츠의 문제점을 분석하고 개선 방안을 제시합니다.'}
+                  콘텐츠의 문제점을 분석하고 개선 방안을 제시합니다.
                 </p>
               </div>
             </div>

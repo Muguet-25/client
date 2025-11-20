@@ -18,8 +18,7 @@ interface TopVideosProps {
   videos: TopVideoItem[];
   isLoading?: boolean;
   fullVideos?: YouTubeVideo[]; // 전체 비디오 데이터 (성공 요인 분석용)
-  videoAnalyticsMap?: Map<string, { ctr: number; averageViewDuration: string }>; // 비디오 Analytics 데이터
-  channelAvgCtr?: number; // 채널 평균 CTR
+  videoAnalyticsMap?: Map<string, { averageViewDuration: string }>; // 비디오 Analytics 데이터
   avgViews?: number; // 평균 조회수
 }
 
@@ -46,7 +45,6 @@ export default function TopVideos({
   isLoading = false, 
   fullVideos = [],
   videoAnalyticsMap = new Map(),
-  channelAvgCtr = 5.0,
   avgViews = 0
 }: TopVideosProps) {
   // 평균 조회수 계산 (props로 받지 않은 경우에만 계산)
@@ -136,7 +134,6 @@ export default function TopVideos({
                         <VideoSuccessFactors
                           video={fullVideo}
                           videoAnalytics={analytics}
-                          channelAvgCtr={channelAvgCtr}
                           avgViews={calculatedAvgViews}
                         />
                       </div>

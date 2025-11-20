@@ -28,17 +28,12 @@ export default function ChannelHealthScore({
   const metrics = useMemo(() => {
     if (!analytics || videos.length === 0) {
       return {
-        ctr: 0,
         avgWatchDuration: 0,
         uploadConsistency: 0,
         subscriberConversion: 0,
         engagement: 0
       };
     }
-
-    // CTR 점수 (0-100) - 10%를 100점으로 기준
-    const ctrScore = Math.min(100, (analytics.ctr ?? 0 / 10) * 100);
-    const ctr = Math.round(ctrScore);
 
     // 평균 시청 지속시간 점수 (0-100)
     const avgDurationSeconds = parseDurationToSeconds(analytics.averageViewDuration);
@@ -69,7 +64,6 @@ export default function ChannelHealthScore({
     const engagement = Math.round(engagementScore);
 
     return {
-      ctr,
       avgWatchDuration,
       uploadConsistency,
       subscriberConversion,
@@ -77,21 +71,16 @@ export default function ChannelHealthScore({
     };
   }, [analytics, videos]);
 
-  const { ctr, avgWatchDuration, uploadConsistency, subscriberConversion, engagement } = metrics;
+  const { avgWatchDuration, uploadConsistency, subscriberConversion, engagement } = metrics;
 
   // 종합 점수 계산 (평균)
   const overallScore = useMemo(() => {
-    return Math.round((ctr + avgWatchDuration + uploadConsistency + subscriberConversion + engagement) / 5);
-  }, [ctr, avgWatchDuration, uploadConsistency, subscriberConversion, engagement]);
+    return Math.round((avgWatchDuration + uploadConsistency + subscriberConversion + engagement) / 4);
+  }, [avgWatchDuration, uploadConsistency, subscriberConversion, engagement]);
 
   // 레이더 차트 데이터
   const healthMetrics = useMemo(() => {
     return [
-      {
-        id: 'CTR',
-        label: 'CTR',
-        value: ctr,
-      },
       {
         id: 'avgWatchDuration',
         label: '평균 시청 지속시간',
@@ -113,7 +102,7 @@ export default function ChannelHealthScore({
         value: engagement,
       },
     ];
-  }, [ctr, avgWatchDuration, uploadConsistency, subscriberConversion, engagement]);
+  }, [avgWatchDuration, uploadConsistency, subscriberConversion, engagement]);
 
   // 점수에 따른 색상 결정
   const getScoreColor = (score: number) => {

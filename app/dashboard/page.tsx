@@ -38,7 +38,7 @@ export default function Dashboard() {
   // 중앙화된 데이터 상태
   const [channelAnalytics, setChannelAnalytics] = useState<YouTubeAnalytics | null>(null);
   const [ageGroupData, setAgeGroupData] = useState<YouTubeAgeGroupData[]>([]);
-  const [videoAnalyticsMap, setVideoAnalyticsMap] = useState<Map<string, { ctr: number; averageViewDuration: string }>>(new Map());
+  const [videoAnalyticsMap, setVideoAnalyticsMap] = useState<Map<string, { averageViewDuration: string }>>(new Map());
   const [insightsData, setInsightsData] = useState<{ diagnosis: string; weeklyGoal: string; actions: string[] } | null>(null);
   const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(false);
   const [hasLoadedAnalytics, setHasLoadedAnalytics] = useState(false);
@@ -105,7 +105,7 @@ export default function Dashboard() {
         })
         .slice(0, 3);
       
-      const analyticsMap = new Map<string, { ctr: number; averageViewDuration: string }>();
+      const analyticsMap = new Map<string, { averageViewDuration: string }>();
       
       for (const video of top3Videos) {
         try {
@@ -113,7 +113,6 @@ export default function Dashboard() {
           const videoStartDate = publishedDate.toISOString().split('T')[0];
           const videoAnalytics = await youtubeAPI.getVideoAnalytics(video.id, videoStartDate, endDate);
           analyticsMap.set(video.id, {
-            ctr: videoAnalytics.ctr ?? 0,
             averageViewDuration: videoAnalytics.averageViewDuration,
           });
         } catch (error) {
@@ -328,7 +327,6 @@ export default function Dashboard() {
                 isLoading={youtubeLoading} 
                 fullVideos={videos}
                 videoAnalyticsMap={videoAnalyticsMap}
-                channelAvgCtr={channelAnalytics?.ctr ?? 0}
                 avgViews={averageViews}
               />
             </div>

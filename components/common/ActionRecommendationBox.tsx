@@ -20,8 +20,8 @@ export default function ActionRecommendationBox({
   actions = [
     {
       id: '1',
-      title: '썸네일 CTR 낮음 → 이 영상 썸네일 2개 다시 만들어 A/B 테스트',
-      description: '최근 업로드한 영상의 CTR이 평균보다 낮습니다.',
+      title: '썸네일 개선 → 이 영상 썸네일 2개 다시 만들어 A/B 테스트',
+      description: '최근 업로드한 영상의 성과를 개선하기 위해 썸네일을 재검토하세요.',
       priority: 'high',
       category: 'thumbnail',
     },

@@ -57,7 +57,6 @@ export async function POST(request: NextRequest) {
         views: analytics.views,
         avgWatchDuration: analytics.averageViewDuration,
         subscribersGained: analytics.subscribersGained,
-        ctr: analytics.ctr,
       },
       topVideos: topVideos.map(video => {
         const videoAnalytics = videoAnalyticsMap.get(video.id);
@@ -65,7 +64,6 @@ export async function POST(request: NextRequest) {
           title: video.title,
           views: parseInt(video.statistics.viewCount || '0'),
           likes: parseInt(video.statistics.likeCount || '0'),
-          ctr: videoAnalytics?.ctr || 0,
           avgWatchDuration: videoAnalytics?.averageViewDuration || '0:00',
           publishedAt: video.publishedAt,
         };
@@ -83,7 +81,7 @@ export async function POST(request: NextRequest) {
           content: `당신은 유튜브 채널 데이터 분석 전문가입니다. 제공된 채널 데이터를 분석하여 다음 형식으로 JSON을 반환하세요:
 
 {
-  "diagnosis": "오늘의 한 줄 진단 (예: CTR은 높은데 유지율이 낮아요. 후킹 부분을 보완한 리메이크를 추천합니다.)",
+  "diagnosis": "오늘의 한 줄 진단 (예: 시청 지속시간이 낮아요. 후킹 부분을 보완한 리메이크를 추천합니다.)",
   "weeklyGoal": "이번 주 목표 (예: 이번 주 목표: 평균 조회수 20% 상승)",
   "actions": [
     "액션 1",
@@ -106,14 +104,12 @@ export async function POST(request: NextRequest) {
 - 조회수: ${channelSummary.recent30Days.views.toLocaleString()}
 - 평균 시청 지속시간: ${channelSummary.recent30Days.avgWatchDuration}
 - 구독자 증가: ${channelSummary.recent30Days.subscribersGained}명
-- CTR: ${channelSummary.recent30Days.ctr.toFixed(2)}%
 
 상위 3개 영상:
 ${channelSummary.topVideos.map((v, i) => `
 ${i + 1}. ${v.title}
    - 조회수: ${v.views.toLocaleString()}
    - 좋아요: ${v.likes.toLocaleString()}
-   - CTR: ${v.ctr.toFixed(2)}%
    - 평균 시청 지속시간: ${v.avgWatchDuration}
 `).join('')}
 

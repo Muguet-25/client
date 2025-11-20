@@ -6,10 +6,8 @@ import { YouTubeVideo } from '@/lib/youtube/types';
 interface VideoSuccessFactorsProps {
   video: YouTubeVideo;
   videoAnalytics?: {
-    ctr: number;
     averageViewDuration: string;
   };
-  channelAvgCtr?: number;
   channelAvgWatchDuration?: string;
   avgViews?: number;
 }
@@ -17,7 +15,6 @@ interface VideoSuccessFactorsProps {
 export default function VideoSuccessFactors({
   video,
   videoAnalytics,
-  channelAvgCtr = 5.0,
   channelAvgWatchDuration = '5:00',
   avgViews = 0
 }: VideoSuccessFactorsProps) {
@@ -49,13 +46,6 @@ export default function VideoSuccessFactors({
     const views = parseInt(video.statistics?.viewCount || '0');
     const likes = parseInt(video.statistics?.likeCount || '0');
     const comments = parseInt(video.statistics?.commentCount || '0');
-    
-    // CTR 분석
-    if (videoAnalytics?.ctr) {
-      if (videoAnalytics.ctr >= channelAvgCtr * 1.2) {
-        factors.push({ label: '썸네일 CTR 상위 10%', color: 'purple' });
-      }
-    }
     
     // 조회수 분석
     if (views >= avgViews * 1.5 && avgViews > 0) {
@@ -96,7 +86,7 @@ export default function VideoSuccessFactors({
     // 여기서는 예시로 추가
     
     return factors;
-  }, [video, videoAnalytics, channelAvgCtr, channelAvgWatchDuration, avgViews]);
+  }, [video, videoAnalytics, channelAvgWatchDuration, avgViews]);
 
   const getColorClasses = (color: string) => {
     const colorMap: Record<string, string> = {

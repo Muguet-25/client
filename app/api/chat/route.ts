@@ -133,7 +133,6 @@ export async function POST(request: NextRequest) {
 - 총 영상 수: ${channel.statistics.videoCount}개
 - 최근 30일 조회수: ${analytics.views.toLocaleString()}
 - 최근 30일 평균 시청 지속시간: ${analytics.averageViewDuration}
-- 최근 30일 CTR: ${(analytics.ctr ?? 0).toFixed(2)}%
 - 최근 30일 구독자 증가: ${analytics.subscribersGained}명
 
 최근 영상 5개:

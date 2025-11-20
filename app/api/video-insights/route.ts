@@ -27,8 +27,6 @@ export async function POST(request: NextRequest) {
     } = video;
 
     const {
-      ctr = 0,
-      avgCtr = 0,
       retentionRate = 0,
       watchDuration = 0,
       videoDuration = 0,
@@ -46,7 +44,6 @@ export async function POST(request: NextRequest) {
 업로드일: ${publishedAt}
 
 주요 지표:
-- CTR: ${ctr.toFixed(2)}% (채널 평균 ${avgCtr.toFixed(2)}%)
 - 평균 시청 지속시간 대비 영상 길이 비율: ${retentionRate.toFixed(1)}%
 - 평균 시청 지속시간(초): ${watchDuration}
 - 영상 길이(초): ${videoDuration}
