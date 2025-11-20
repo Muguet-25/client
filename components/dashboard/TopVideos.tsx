@@ -1,6 +1,9 @@
 "use client";
 
+import { useMemo } from "react";
 import Image from "next/image";
+import VideoSuccessFactors from "./VideoSuccessFactors";
+import { YouTubeVideo } from "@/lib/youtube/types";
 
 interface TopVideoItem {
   id: string;
@@ -14,6 +17,10 @@ interface TopVideoItem {
 interface TopVideosProps {
   videos: TopVideoItem[];
   isLoading?: boolean;
+  fullVideos?: YouTubeVideo[]; // 전체 비디오 데이터 (성공 요인 분석용)
+  videoAnalyticsMap?: Map<string, { ctr: number; averageViewDuration: string }>; // 비디오 Analytics 데이터
+  channelAvgCtr?: number; // 채널 평균 CTR
+  avgViews?: number; // 평균 조회수
 }
 
 const fallbackThumbnails = [
@@ -34,7 +41,23 @@ const formatDate = (date?: string) => {
   return `${year}-${month}-${day}`;
 };
 
-export default function TopVideos({ videos, isLoading = false }: TopVideosProps) {
+export default function TopVideos({ 
+  videos, 
+  isLoading = false, 
+  fullVideos = [],
+  videoAnalyticsMap = new Map(),
+  channelAvgCtr = 5.0,
+  avgViews = 0
+}: TopVideosProps) {
+  // 평균 조회수 계산 (props로 받지 않은 경우에만 계산)
+  const calculatedAvgViews = useMemo(() => {
+    if (avgViews > 0) return avgViews;
+    if (fullVideos.length > 0) {
+      const totalViews = fullVideos.reduce((sum, v) => sum + parseInt(v.statistics?.viewCount || '0'), 0);
+      return totalViews / fullVideos.length;
+    }
+    return 0;
+  }, [fullVideos, avgViews]);
   return (
     <div className="h-full rounded-[20px] mt-20">
       <div className="flex items-center justify-between mb-6">
@@ -101,6 +124,24 @@ export default function TopVideos({ videos, isLoading = false }: TopVideosProps)
                   <h4 className="text-white text-base font-medium mb-3 line-clamp-2 flex-1">
                     {video.title}
                   </h4>
+                  
+                  {/* 성공 요인 뱃지 */}
+                  {fullVideos.length > 0 && (() => {
+                    const fullVideo = fullVideos.find(v => v.id === video.id);
+                    if (!fullVideo) return null;
+                    
+                    const analytics = videoAnalyticsMap.get(video.id);
+                    return (
+                      <div className="mb-3">
+                        <VideoSuccessFactors
+                          video={fullVideo}
+                          videoAnalytics={analytics}
+                          channelAvgCtr={channelAvgCtr}
+                          avgViews={calculatedAvgViews}
+                        />
+                      </div>
+                    );
+                  })()}
                   
                   {/* 조회수 */}
                   <div className="text-[#9ca3af] text-sm">

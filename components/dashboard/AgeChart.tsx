@@ -1,7 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useYouTube } from '@/hooks/useYouTube';
+import { useMemo } from 'react';
 import { YouTubeAgeGroupData } from '@/lib/youtube/types';
 
 interface AgeGroup {
@@ -25,57 +24,27 @@ const defaultAgeGroups: AgeGroup[] = [
   { age: '40+', percentage: 0, color: '#7d420f' },
 ];
 
-export default function AgeChart() {
-  const { channel, isConnected, getAgeGroupData } = useYouTube();
-  const [ageGroups, setAgeGroups] = useState<AgeGroup[]>(defaultAgeGroups);
-  const [isLoading, setIsLoading] = useState(true);
+interface AgeChartProps {
+  ageGroupData?: YouTubeAgeGroupData[];
+  isLoading?: boolean;
+}
 
-  useEffect(() => {
-    const fetchAgeGroupData = async () => {
-      if (!isConnected || !channel) {
-        setIsLoading(false);
-        return;
-      }
+export default function AgeChart({ ageGroupData = [], isLoading = false }: AgeChartProps) {
+  // 데이터를 우리 형식으로 변환 (useMemo로 최적화)
+  const ageGroups = useMemo(() => {
+    if (!ageGroupData || ageGroupData.length === 0) {
+      return defaultAgeGroups;
+    }
 
-      try {
-        setIsLoading(true);
-        
-        // 최근 30일 데이터 가져오기
-        const endDate = new Date();
-        const startDate = new Date();
-        startDate.setDate(startDate.getDate() - 30);
-        
-        const startDateStr = startDate.toISOString().split('T')[0];
-        const endDateStr = endDate.toISOString().split('T')[0];
-        
-        const data = await getAgeGroupData(channel.id, startDateStr, endDateStr);
-        
-        if (data && data.length > 0) {
-          // 데이터를 우리 형식으로 변환
-          const transformedData: AgeGroup[] = defaultAgeGroups.map(defaultGroup => {
-            const found = data.find(d => d.ageGroup === defaultGroup.age);
-            return {
-              age: defaultGroup.age,
-              percentage: found ? found.percentage : 0,
-              color: defaultGroup.color,
-            };
-          });
-          
-          setAgeGroups(transformedData);
-        } else {
-          // 데이터가 없으면 기본값 사용
-          setAgeGroups(defaultAgeGroups);
-        }
-      } catch (error) {
-        console.error('연령대 데이터 가져오기 실패:', error);
-        setAgeGroups(defaultAgeGroups);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchAgeGroupData();
-  }, [isConnected, channel, getAgeGroupData]);
+    return defaultAgeGroups.map(defaultGroup => {
+      const found = ageGroupData.find(d => d.ageGroup === defaultGroup.age);
+      return {
+        age: defaultGroup.age,
+        percentage: found ? found.percentage : 0,
+        color: defaultGroup.color,
+      };
+    });
+  }, [ageGroupData]);
 
   // 총 퍼센트 계산 (정규화를 위해)
   const totalPercentage = ageGroups.reduce((sum, group) => sum + group.percentage, 0);

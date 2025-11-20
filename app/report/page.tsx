@@ -4,9 +4,12 @@ import Sidebar from '@/components/dashboard/Sidebar';
 import ReportHeader from '@/components/report/ReportHeader';
 import Calendar from '@/components/report/Calendar';
 import VideoDetailModal from '@/components/report/VideoDetailModal';
+import UploadRoutine from '@/components/report/UploadRoutine';
+import PlanVideoModal from '@/components/report/PlanVideoModal';
 import { useYouTube } from '@/hooks/useYouTube';
 import { useStore } from '@/lib/store';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
+import { Plus } from 'lucide-react';
 
 interface CalendarEvent {
   id: string;
@@ -17,6 +20,11 @@ interface CalendarEvent {
   duration?: string;
   likes?: number;
   publishedAt: string;
+  performance?: 'high' | 'medium' | 'low';
+  avgViews?: number;
+  isPlanned?: boolean; // 계획 영상 여부
+  status?: 'idea' | 'planned' | 'in_progress';
+  experimentPurpose?: string;
 }
 
 export default function ReportPage() {
@@ -26,23 +34,51 @@ export default function ReportPage() {
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [selectedVideo, setSelectedVideo] = useState<CalendarEvent | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
+  const [selectedDateForPlan, setSelectedDateForPlan] = useState<Date | undefined>();
+
+  // 평균 조회수 계산 (성과 비교용)
+  const avgViews = useMemo(() => {
+    if (!videos || videos.length === 0) return 0;
+    const totalViews = videos.reduce((sum, video) => 
+      sum + parseInt(video.statistics?.viewCount || '0'), 0
+    );
+    return totalViews / videos.length;
+  }, [videos]);
 
   // YouTube 동영상 데이터를 달력 이벤트 형식으로 변환
   useEffect(() => {
     if (videos && videos.length > 0) {
-      const events: CalendarEvent[] = videos.map(video => ({
-        id: video.id,
-        title: video.title,
-        date: new Date(video.publishedAt),
-        thumbnail: video.thumbnails?.medium?.url || video.thumbnails?.default?.url,
-        views: parseInt(video.statistics.viewCount),
-        likes: parseInt(video.statistics.likeCount),
-        duration: video.duration,
-        publishedAt: video.publishedAt
-      }));
+      const events: CalendarEvent[] = videos.map(video => {
+        const views = parseInt(video.statistics?.viewCount || '0');
+        // 성과 지표 계산 (평균 대비)
+        let performance: 'high' | 'medium' | 'low' | undefined;
+        if (avgViews > 0) {
+          if (views >= avgViews * 1.2) {
+            performance = 'high';
+          } else if (views <= avgViews * 0.8) {
+            performance = 'low';
+          } else {
+            performance = 'medium';
+          }
+        }
+
+        return {
+          id: video.id,
+          title: video.title,
+          date: new Date(video.publishedAt),
+          thumbnail: video.thumbnails?.medium?.url || video.thumbnails?.default?.url,
+          views,
+          likes: parseInt(video.statistics?.likeCount || '0'),
+          duration: video.duration,
+          publishedAt: video.publishedAt,
+          performance,
+          avgViews,
+        };
+      });
       setCalendarEvents(events);
     }
-  }, [videos]);
+  }, [videos, avgViews]);
 
   const handleVideoClick = (video: CalendarEvent) => {
     setSelectedVideo(video);
@@ -52,6 +88,33 @@ export default function ReportPage() {
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setSelectedVideo(null);
+  };
+
+  const handleAddPlan = (plan: {
+    title: string;
+    date: Date;
+    time?: string;
+    experimentPurpose?: string;
+    status: 'idea' | 'planned' | 'in_progress';
+  }) => {
+    const newEvent: CalendarEvent = {
+      id: `plan-${Date.now()}`,
+      title: plan.title,
+      date: plan.date,
+      publishedAt: plan.date.toISOString(),
+      isPlanned: true,
+      status: plan.status,
+      experimentPurpose: plan.experimentPurpose,
+    };
+    setCalendarEvents((prev) => [...prev, newEvent]);
+  };
+
+  const handleCalendarDateClick = (date: Date) => {
+    // 미래 날짜만 계획 추가 가능
+    if (date >= new Date(new Date().setHours(0, 0, 0, 0))) {
+      setSelectedDateForPlan(date);
+      setIsPlanModalOpen(true);
+    }
   };
 
   return (
@@ -92,7 +155,32 @@ export default function ReportPage() {
             </div>
           ) : (
             <div className="px-8 pt-8 pb-8">
-              <Calendar events={calendarEvents} onVideoClick={handleVideoClick} />
+              {/* 업로드 루틴 분석 */}
+              <UploadRoutine videos={videos} />
+              
+             
+              {/* 캘린더 */}
+              <Calendar 
+                events={calendarEvents} 
+                onVideoClick={handleVideoClick}
+                onDateClick={handleCalendarDateClick}
+              />
+              
+              {/* 범례 */}
+              <div className="mt-6 flex items-center gap-6 text-sm">
+                <div className="flex items-center gap-2">
+                  <span className="w-3 h-3 bg-green-500 rounded-full" />
+                  <span className="text-[#aaaaaa]">평균보다 높은 성과</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-3 h-3 bg-yellow-500 rounded-full" />
+                  <span className="text-[#aaaaaa]">평균 성과</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="w-3 h-3 bg-red-500 rounded-full" />
+                  <span className="text-[#aaaaaa]">평균보다 낮은 성과</span>
+                </div>
+              </div>
             </div>
           )}
         </div>
@@ -102,6 +190,14 @@ export default function ReportPage() {
           isOpen={isModalOpen}
           onClose={handleCloseModal}
           video={selectedVideo}
+        />
+
+        {/* 계획 영상 추가 모달 */}
+        <PlanVideoModal
+          isOpen={isPlanModalOpen}
+          onClose={() => setIsPlanModalOpen(false)}
+          onSave={handleAddPlan}
+          selectedDate={selectedDateForPlan}
         />
       </div>
     </div>

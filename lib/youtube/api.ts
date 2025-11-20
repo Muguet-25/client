@@ -4,7 +4,9 @@ import {
   YouTubeAnalytics, 
   YouTubeAnalyticsData,
   YouTubeAgeGroupData,
-  YouTubeError 
+  YouTubeError,
+  YouTubeReachAnalytics,
+  YouTubeReachAnalyticsRow
 } from './types';
 
 const YOUTUBE_API_BASE = 'https://www.googleapis.com/youtube/v3';
@@ -57,6 +59,7 @@ export class YouTubeAPI {
   private readonly CACHE_DURATION = 30 * 60 * 1000; // 30분 캐시 (할당량 절약)
   private readonly CHANNEL_CACHE_DURATION = 60 * 60 * 1000; // 채널 정보는 1시간 캐시
   private readonly VIDEOS_CACHE_DURATION = 5 * 60 * 1000; // 비디오 목록은 5분 캐시
+  private readonly PERSISTENT_CACHE_DURATION = 7 * 24 * 60 * 60 * 1000; // localStorage 캐시는 7일
   private readonly PERSISTENT_CACHE_PREFIX = 'youtube_cache_';
 
   constructor(accessToken: string) {
@@ -64,49 +67,153 @@ export class YouTubeAPI {
     this.loadPersistentCache();
   }
 
-  // 영구 캐시 로드 (localStorage에서)
+  // 영구 캐시 로드 (localStorage에서) - 브라우저 환경에서만
   private loadPersistentCache(): void {
+    // 서버 사이드에서는 localStorage가 없으므로 스킵
+    if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+      return;
+    }
+    
     try {
       const keys = Object.keys(localStorage).filter(key => key.startsWith(this.PERSISTENT_CACHE_PREFIX));
+      let loadedCount = 0;
       keys.forEach(key => {
         const data = localStorage.getItem(key);
         if (data) {
-          const parsed = JSON.parse(data);
-          this.cache.set(key.replace(this.PERSISTENT_CACHE_PREFIX, ''), parsed);
+          try {
+            const parsed = JSON.parse(data);
+            // persistentExpiresAt이 있고 만료되었으면 스킵
+            if (parsed.persistentExpiresAt && Date.now() >= parsed.persistentExpiresAt) {
+              // 만료된 캐시는 삭제하지 않고 그냥 스킵 (할당량 초과 시 사용할 수 있도록)
+              return;
+            }
+            // 메모리 캐시에 복원 (persistentExpiresAt은 제외)
+            const cacheKey = key.replace(this.PERSISTENT_CACHE_PREFIX, '');
+            this.cache.set(cacheKey, {
+              data: parsed.data,
+              timestamp: parsed.timestamp
+            });
+            loadedCount++;
+          } catch (parseError) {
+            console.error(`캐시 파싱 실패: ${key}`, parseError);
+          }
         }
       });
-      console.log(`영구 캐시 로드 완료: ${keys.length}개 항목`);
+      console.log(`영구 캐시 로드 완료: ${loadedCount}개 항목`);
     } catch (error) {
       console.error('영구 캐시 로드 실패:', error);
     }
   }
 
-  // 영구 캐시 저장 (localStorage에)
+  // 영구 캐시 저장 (localStorage에) - 브라우저 환경에서만
   private saveToPersistentCache(key: string, data: any): void {
+    // 서버 사이드에서는 localStorage가 없으므로 스킵
+    if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+      return;
+    }
+    
     try {
       const persistentKey = this.PERSISTENT_CACHE_PREFIX + key;
-      localStorage.setItem(persistentKey, JSON.stringify(data));
+      // localStorage에는 7일 만료 시간을 포함하여 저장
+      const persistentData = {
+        ...data,
+        persistentExpiresAt: Date.now() + this.PERSISTENT_CACHE_DURATION
+      };
+      localStorage.setItem(persistentKey, JSON.stringify(persistentData));
     } catch (error) {
       console.error('영구 캐시 저장 실패:', error);
     }
   }
 
   // 캐시에서 데이터 가져오기 (커스텀 캐시 시간 지원)
-  private getFromCache<T>(key: string, customDuration?: number): T | null {
+  private getFromCache<T>(key: string, customDuration?: number, allowExpired: boolean = false): T | null {
     const cached = this.cache.get(key);
     const duration = customDuration || this.CACHE_DURATION;
     
-    if (cached && Date.now() - cached.timestamp < duration) {
-      console.log(`캐시에서 데이터 로드: ${key}`);
-      return cached.data as T;
-    }
-    
     if (cached) {
+      const isExpired = Date.now() - cached.timestamp >= duration;
+      
+      if (!isExpired) {
+        console.log(`캐시에서 데이터 로드: ${key}`);
+        return cached.data as T;
+      }
+      
+      // 만료되었지만 allowExpired가 true면 반환
+      if (allowExpired) {
+        console.log(`만료된 캐시 사용 (할당량 초과): ${key}`);
+        return cached.data as T;
+      }
+      
       console.log(`캐시 만료: ${key}`);
-    this.cache.delete(key);
+      this.cache.delete(key);
     }
     
     return null;
+  }
+
+  // localStorage에서 만료된 캐시도 포함하여 가져오기 (할당량 초과 시 사용)
+  private getFromPersistentCache<T>(key: string, allowExpired: boolean = false): T | null {
+    // 서버 사이드에서는 localStorage가 없으므로 스킵
+    if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+      return null;
+    }
+    
+    try {
+      const persistentKey = this.PERSISTENT_CACHE_PREFIX + key;
+      const data = localStorage.getItem(persistentKey);
+      
+      if (!data) {
+        return null;
+      }
+      
+      const parsed = JSON.parse(data);
+      const persistentExpiresAt = parsed.persistentExpiresAt;
+      
+      // 만료 시간 체크
+      if (persistentExpiresAt) {
+        const isExpired = Date.now() >= persistentExpiresAt;
+        
+        if (!isExpired) {
+          console.log(`localStorage 캐시에서 데이터 로드: ${key}`);
+          // 메모리 캐시에도 복원
+          this.cache.set(key, {
+            data: parsed.data,
+            timestamp: parsed.timestamp
+          });
+          return parsed.data as T;
+        }
+        
+        // 만료되었지만 allowExpired가 true면 반환
+        if (allowExpired) {
+          console.log(`만료된 localStorage 캐시 사용 (할당량 초과): ${key}`);
+          // 메모리 캐시에도 복원
+          this.cache.set(key, {
+            data: parsed.data,
+            timestamp: parsed.timestamp
+          });
+          return parsed.data as T;
+        }
+        
+        // 만료되었고 allowExpired가 false면 삭제
+        localStorage.removeItem(persistentKey);
+        return null;
+      }
+      
+      // 구버전 캐시 (persistentExpiresAt이 없음) - 호환성 유지
+      if (parsed.data) {
+        console.log(`localStorage 캐시에서 데이터 로드 (구버전): ${key}`);
+        this.cache.set(key, {
+          data: parsed.data,
+          timestamp: parsed.timestamp
+        });
+        return parsed.data as T;
+      }
+      
+      return null;
+    } catch (error) {
+      console.error('localStorage 캐시 로드 실패:', error);
+      return null;
+    }
   }
 
   // 캐시에 데이터 저장 (영구 캐시도 함께 저장)
@@ -124,13 +231,15 @@ export class YouTubeAPI {
   public clearCache(): void {
     this.cache.clear();
     
-    // localStorage에서도 캐시 제거
-    try {
-      const keys = Object.keys(localStorage).filter(key => key.startsWith(this.PERSISTENT_CACHE_PREFIX));
-      keys.forEach(key => localStorage.removeItem(key));
-      console.log('영구 캐시 클리어 완료');
-    } catch (error) {
-      console.error('영구 캐시 클리어 실패:', error);
+    // localStorage에서도 캐시 제거 (브라우저 환경에서만)
+    if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+      try {
+        const keys = Object.keys(localStorage).filter(key => key.startsWith(this.PERSISTENT_CACHE_PREFIX));
+        keys.forEach(key => localStorage.removeItem(key));
+        console.log('영구 캐시 클리어 완료');
+      } catch (error) {
+        console.error('영구 캐시 클리어 실패:', error);
+      }
     }
   }
 
@@ -145,12 +254,14 @@ export class YouTubeAPI {
     
     keysToDelete.forEach(key => {
       this.cache.delete(key);
-      // localStorage에서도 제거
-      try {
-        const persistentKey = this.PERSISTENT_CACHE_PREFIX + key;
-        localStorage.removeItem(persistentKey);
-      } catch (error) {
-        console.error('비디오 캐시 제거 실패:', error);
+      // localStorage에서도 제거 (브라우저 환경에서만)
+      if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+        try {
+          const persistentKey = this.PERSISTENT_CACHE_PREFIX + key;
+          localStorage.removeItem(persistentKey);
+        } catch (error) {
+          console.error('비디오 캐시 제거 실패:', error);
+        }
       }
     });
     
@@ -200,40 +311,83 @@ export class YouTubeAPI {
           }
         }
         
-        // 할당량 초과 처리
-        if (response.status === 403) {
-          const errorData = await response.json().catch(() => ({}));
-          if (errorData.error?.errors?.[0]?.reason === 'quotaExceeded') {
-            throw new Error('YouTube API 할당량이 초과되었습니다. 잠시 후 다시 시도해주세요.');
-          }
-        }
-        
-        const errorText = await response.text();
-        console.error('YouTube API 오류:', {
-          status: response.status,
-          statusText: response.statusText,
-          error: errorText,
-          url: url,
-          params: params
-        });
+        // 에러 응답 body를 한 번만 읽기
+        let errorText: string;
+        let errorData: any = {};
         
         try {
-          const error: YouTubeError = JSON.parse(errorText);
-          throw new Error(`YouTube API Error: ${error.error?.message || errorText}`);
-        } catch {
-          throw new Error(`YouTube API Error (${response.status}): ${errorText}`);
+          // 먼저 텍스트로 읽기
+          errorText = await response.text();
+          // JSON 파싱 시도
+          try {
+            errorData = JSON.parse(errorText);
+          } catch {
+            // JSON이 아니면 그냥 텍스트로 사용
+          }
+        } catch (readError) {
+          errorText = '응답을 읽을 수 없습니다.';
         }
+        
+        // 할당량 초과 처리 - 특별한 에러 타입으로 throw하여 각 메서드에서 캐시 fallback 처리 가능하도록
+        if (response.status === 403 && errorData.error?.errors?.[0]?.reason === 'quotaExceeded') {
+          const quotaError = new Error('YouTube API 할당량이 초과되었습니다.');
+          (quotaError as any).isQuotaExceeded = true;
+          throw quotaError;
+        }
+        
+        // 예상 가능한 오류(403, 500)는 warn 레벨로, 그 외는 error 레벨로
+        const errorMessage = errorData.error?.message || errorText;
+        const isExpectedError = response.status === 403 || response.status === 500;
+        
+        if (isExpectedError) {
+          // 예상 가능한 오류는 간결하게 로깅 (fallback이 처리할 예정)
+          console.warn(`YouTube API ${response.status} 오류: ${errorMessage}`);
+        } else {
+          // 예상치 못한 오류는 상세하게 로깅
+        }
+        
+        // JSON 파싱 성공 시 구조화된 에러 메시지 사용
+        if (errorData.error?.message) {
+          const apiError = new Error(`YouTube API Error: ${errorData.error.message}`);
+          (apiError as any).statusCode = response.status;
+          throw apiError;
+        }
+        
+        const genericError = new Error(`YouTube API Error (${response.status}): ${errorText}`);
+        (genericError as any).statusCode = response.status;
+        throw genericError;
       }
 
       return response.json();
-    } catch (error) {
-      console.error('YouTube API 요청 실패:', error);
+    } catch (error: any) {
+      // 이미 makeRequest에서 로깅했으므로, 네트워크 오류나 예상치 못한 오류만 다시 로깅
+      if (error instanceof TypeError && error.message.includes('fetch failed')) {
+        console.error('YouTube API 네트워크 오류:', error);
+      } else if (!error?.statusCode) {
+        // statusCode가 없는 경우만 로깅 (이미 로깅된 에러는 제외)
+        console.error('YouTube API 요청 실패:', error);
+      }
+      
+      // 네트워크 오류에 대한 더 명확한 메시지
+      if (error instanceof TypeError && error.message.includes('fetch failed')) {
+        const cause = (error as any).cause;
+        if (cause?.code === 'ECONNREFUSED') {
+          throw new Error('YouTube API에 연결할 수 없습니다. 네트워크 연결을 확인해주세요.');
+        }
+        throw new Error(`YouTube API 요청 실패: ${error.message}`);
+      }
+      
       throw error;
     }
   }
 
   // 토큰 갱신 (서버 API 사용)
   private async refreshToken(): Promise<void> {
+    // 서버 사이드에서는 토큰 갱신을 지원하지 않음
+    if (typeof window === 'undefined' || typeof localStorage === 'undefined') {
+      throw new Error('서버 사이드에서는 토큰 갱신을 지원하지 않습니다.');
+    }
+    
     const refreshToken = localStorage.getItem('youtube_refresh_token');
     if (!refreshToken) {
       throw new Error('Refresh token이 없습니다. 다시 로그인해주세요.');
@@ -276,52 +430,73 @@ export class YouTubeAPI {
       return cachedData;
     }
 
-    const params = {
-      part: 'snippet,statistics,brandingSettings',
-      mine: channelId ? 'false' : 'true',
-      ...(channelId && { id: channelId }),
-    };
+    try {
+      // channelId가 있으면 id만 사용, 없으면 mine만 사용 (동시 사용 불가)
+      const params: Record<string, string> = {
+        part: 'snippet,statistics,brandingSettings',
+      };
+      
+      if (channelId) {
+        params.id = channelId;
+      } else {
+        params.mine = 'true';
+      }
 
-    const response = await this.makeRequest<{
-      items: Array<{
-        id: string;
-        snippet: YouTubeSnippet;
-        statistics: YouTubeStatistics;
-        brandingSettings: YouTubeBrandingSettings;
-      }>;
-    }>(`${YOUTUBE_API_BASE}/channels`, params);
+      const response = await this.makeRequest<{
+        items: Array<{
+          id: string;
+          snippet: YouTubeSnippet;
+          statistics: YouTubeStatistics;
+          brandingSettings: YouTubeBrandingSettings;
+        }>;
+      }>(`${YOUTUBE_API_BASE}/channels`, params);
 
-    if (!response.items || response.items.length === 0) {
-      throw new Error('채널을 찾을 수 없습니다.');
-    }
+      if (!response.items || response.items.length === 0) {
+        throw new Error('채널을 찾을 수 없습니다.');
+      }
 
-    const channel = response.items[0];
-    const channelData = {
-      id: channel.id,
-      title: channel.snippet.title,
-      description: channel.snippet.description,
-      customUrl: channel.snippet.customUrl || '',
-      publishedAt: channel.snippet.publishedAt,
-      thumbnails: channel.snippet.thumbnails,
-      statistics: {
-        viewCount: channel.statistics.viewCount || '0',
-        subscriberCount: channel.statistics.subscriberCount || '0',
-        videoCount: channel.statistics.videoCount || '0',
-      },
-      brandingSettings: {
-        channel: channel.brandingSettings?.channel || {
-          title: '',
-          description: '',
-          keywords: '',
+      const channel = response.items[0];
+      const channelData = {
+        id: channel.id,
+        title: channel.snippet.title,
+        description: channel.snippet.description,
+        customUrl: channel.snippet.customUrl || '',
+        publishedAt: channel.snippet.publishedAt,
+        thumbnails: channel.snippet.thumbnails,
+        statistics: {
+          viewCount: channel.statistics.viewCount || '0',
+          subscriberCount: channel.statistics.subscriberCount || '0',
+          videoCount: channel.statistics.videoCount || '0',
         },
-      },
-    };
+        brandingSettings: {
+          channel: channel.brandingSettings?.channel || {
+            title: '',
+            description: '',
+            keywords: '',
+          },
+        },
+      };
 
-    // 캐시에 저장
-    this.setCache(cacheKey, channelData);
-    console.log('채널 데이터를 캐시에 저장');
-    
-    return channelData;
+      // 캐시에 저장
+      this.setCache(cacheKey, channelData);
+      console.log('채널 데이터를 캐시에 저장');
+      
+      return channelData;
+    } catch (error: any) {
+      // 할당량 초과 시 만료된 캐시 사용
+      if (error?.isQuotaExceeded) {
+        console.warn('할당량 초과 - 만료된 캐시에서 데이터 로드 시도');
+        const expiredCache = this.getFromCache<YouTubeChannel>(cacheKey, this.CHANNEL_CACHE_DURATION, true);
+        if (expiredCache) {
+          return expiredCache;
+        }
+        const persistentCache = this.getFromPersistentCache<YouTubeChannel>(cacheKey, true);
+        if (persistentCache) {
+          return persistentCache;
+        }
+      }
+      throw error;
+    }
   }
 
   // 비디오 목록 가져오기 (15분 캐시)
@@ -409,9 +584,21 @@ export class YouTubeAPI {
       console.log('비디오 데이터를 캐시에 저장');
 
       return videos;
-    } catch (error) {
+    } catch (error: any) {
+      // 할당량 초과 시 만료된 캐시 사용
+      if (error?.isQuotaExceeded) {
+        console.warn('할당량 초과 - 만료된 캐시에서 데이터 로드 시도');
+        const expiredCache = this.getFromCache<YouTubeVideo[]>(cacheKey, this.VIDEOS_CACHE_DURATION, true);
+        if (expiredCache) {
+          return expiredCache;
+        }
+        const persistentCache = this.getFromPersistentCache<YouTubeVideo[]>(cacheKey, true);
+        if (persistentCache) {
+          return persistentCache;
+        }
+      }
       console.error('비디오 목록 가져오기 실패:', error);
-      // 할당량 초과 시 빈 배열 반환
+      // 할당량 초과가 아니거나 캐시도 없으면 빈 배열 반환
       return [];
     }
   }
@@ -535,18 +722,90 @@ export class YouTubeAPI {
     startDate: string,
     endDate: string
   ): Promise<YouTubeAnalytics> {
-    const params = {
-      ids: `channel==${channelId}`,
-      startDate,
-      endDate,
-      metrics: 'views,estimatedMinutesWatched,averageViewDuration,subscribersGained,subscribersLost,likes,dislikes,comments,shares,estimatedRevenue,cpm,impressions,impressionsClickable',
-    };
+    const cacheKey = `channel_analytics_${channelId}_${startDate}_${endDate}`;
+    
+    // 캐시에서 데이터 확인
+    const cachedData = this.getFromCache<YouTubeAnalytics>(cacheKey, this.CACHE_DURATION);
+    if (cachedData) {
+      return cachedData;
+    }
 
-    const response = await this.makeRequest<{
-      rows: number[][];
-    }>(`${YOUTUBE_ANALYTICS_API_BASE}/reports`, params);
+    try {
+      const params = {
+        ids: `channel==${channelId}`,
+        startDate,
+        endDate,
+        metrics: 'views,estimatedMinutesWatched,averageViewDuration,subscribersGained,subscribersLost,likes,dislikes,comments,shares,estimatedRevenue,cpm',
+      };
 
-    if (!response.rows || response.rows.length === 0) {
+      const response = await this.makeRequest<{
+        rows: number[][];
+      }>(`${YOUTUBE_ANALYTICS_API_BASE}/reports`, params);
+
+      if (!response.rows || response.rows.length === 0) {
+        return {
+          views: 0,
+          estimatedMinutesWatched: 0,
+          averageViewDuration: '0:00',
+          subscribersGained: 0,
+          subscribersLost: 0,
+          likes: 0,
+          dislikes: 0,
+          comments: 0,
+          shares: 0,
+          estimatedRevenue: 0,
+          cpm: 0,
+          ctr: 0,
+          impressions: 0,
+          impressionsClickable: 0,
+        };
+      }
+
+      const row = response.rows[0];
+      const analyticsData = {
+        views: row[0] || 0,
+        estimatedMinutesWatched: row[1] || 0,
+        averageViewDuration: this.formatDuration(row[2] || 0),
+        subscribersGained: row[3] || 0,
+        subscribersLost: row[4] || 0,
+        likes: row[5] || 0,
+        dislikes: row[6] || 0,
+        comments: row[7] || 0,
+        shares: row[8] || 0,
+        estimatedRevenue: row[9] || 0,
+        cpm: row[10] || 0,
+        ctr: 0,
+        impressions: 0,
+        impressionsClickable: 0,
+      };
+
+      // 캐시에 저장
+      this.setCache(cacheKey, analyticsData);
+      
+      return analyticsData;
+    } catch (error: any) {
+      // 에러 메시지 확인
+      const errorMessage = error?.message || '';
+      const statusCode = error?.statusCode;
+      
+      // 403 Forbidden 또는 500 Internal Server Error 시 만료된 캐시 사용 시도
+      if (error?.isQuotaExceeded || 
+          statusCode === 403 || 
+          statusCode === 500 ||
+          errorMessage.includes('Forbidden') || 
+          errorMessage.includes('internal error')) {
+        // 캐시에서 데이터 로드 시도 (성공 시에만 로그)
+        const expiredCache = this.getFromCache<YouTubeAnalytics>(cacheKey, this.CACHE_DURATION, true);
+        if (expiredCache) {
+          return expiredCache;
+        }
+        const persistentCache = this.getFromPersistentCache<YouTubeAnalytics>(cacheKey, true);
+        if (persistentCache) {
+          return persistentCache;
+        }
+      }
+      
+      // 캐시도 없으면 기본값 반환 (조용히 처리)
       return {
         views: 0,
         estimatedMinutesWatched: 0,
@@ -564,23 +823,73 @@ export class YouTubeAPI {
         impressionsClickable: 0,
       };
     }
+  }
 
-    const row = response.rows[0];
+  // 채널 노출/도달 지표 (별도 리포트)
+  async getChannelReachAnalytics(
+    channelId: string,
+    startDate: string,
+    endDate: string
+  ): Promise<YouTubeReachAnalytics> {
+    const params = {
+      ids: `channel==${channelId}`,
+      startDate,
+      endDate,
+      dimensions: 'day',
+      metrics: 'impressionsCtr,impressionsViewerPercentage,views',
+    };
+
+    const response = await this.makeRequest<{
+      rows: Array<[string, number, number, number]>;
+    }>(`${YOUTUBE_ANALYTICS_API_BASE}/reports`, params);
+
+    if (!response.rows || response.rows.length === 0) {
+      return {
+        totalImpressions: 0,
+        averageCtr: 0,
+        averageViewerPercentage: 0,
+        totalViews: 0,
+        rows: [],
+      };
+    }
+
+    const rows: YouTubeReachAnalyticsRow[] = response.rows.map(row => ({
+      date: row[0],
+      impressions: 0,
+      impressionsCtr: row[1] || 0,
+      impressionsViewerPercentage: row[2] || 0,
+      views: row[3] || 0,
+    }));
+
+    const totals = rows.reduce(
+      (acc, row) => {
+        const weight = row.views;
+        acc.impressions += row.impressions;
+        acc.views += row.views;
+        acc.weightedCtr += weight * row.impressionsCtr;
+        acc.weightedViewerPercentage += weight * row.impressionsViewerPercentage;
+        return acc;
+      },
+      {
+        impressions: 0,
+        views: 0,
+        weightedCtr: 0,
+        weightedViewerPercentage: 0,
+      }
+    );
+
+    const totalImpressions = 0;
+    const weightBase = totals.views;
+    const averageCtr = weightBase > 0 ? totals.weightedCtr / weightBase : 0;
+    const averageViewerPercentage =
+      weightBase > 0 ? totals.weightedViewerPercentage / weightBase : 0;
+
     return {
-      views: row[0] || 0,
-      estimatedMinutesWatched: row[1] || 0,
-      averageViewDuration: this.formatDuration(row[2] || 0),
-      subscribersGained: row[3] || 0,
-      subscribersLost: row[4] || 0,
-      likes: row[5] || 0,
-      dislikes: row[6] || 0,
-      comments: row[7] || 0,
-      shares: row[8] || 0,
-      estimatedRevenue: row[9] || 0,
-      cpm: row[10] || 0,
-      ctr: 0, // CTR은 지원되지 않으므로 0으로 설정
-      impressions: row[11] || 0,
-      impressionsClickable: row[12] || 0,
+      totalImpressions,
+      averageCtr,
+      averageViewerPercentage,
+      totalViews: totals.views,
+      rows,
     };
   }
 
@@ -627,18 +936,93 @@ export class YouTubeAPI {
     startDate: string,
     endDate: string
   ): Promise<YouTubeAnalytics> {
-    const params = {
-      ids: `video==${videoId}`,
-      startDate,
-      endDate,
-      metrics: 'views,estimatedMinutesWatched,averageViewDuration,likes,dislikes,comments,shares,estimatedRevenue',
-    };
+    const cacheKey = `video_analytics_${videoId}_${startDate}_${endDate}`;
+    
+    // 캐시에서 데이터 확인
+    const cachedData = this.getFromCache<YouTubeAnalytics>(cacheKey, this.CACHE_DURATION);
+    if (cachedData) {
+      return cachedData;
+    }
 
-    const response = await this.makeRequest<{
-      rows: number[][];
-    }>(`${YOUTUBE_ANALYTICS_API_BASE}/reports`, params);
+    try {
+      // 비디오 레벨에서는 impressions 메트릭이 지원되지 않으므로 제거
+      const params = {
+        ids: `video==${videoId}`,
+        startDate,
+        endDate,
+        metrics: 'views,estimatedMinutesWatched,averageViewDuration,likes,dislikes,comments,shares,estimatedRevenue',
+      };
 
-    if (!response.rows || response.rows.length === 0) {
+      const response = await this.makeRequest<{
+        rows: number[][];
+      }>(`${YOUTUBE_ANALYTICS_API_BASE}/reports`, params);
+
+      if (!response.rows || response.rows.length === 0) {
+        return {
+          views: 0,
+          estimatedMinutesWatched: 0,
+          averageViewDuration: '0:00',
+          subscribersGained: 0,
+          subscribersLost: 0,
+          likes: 0,
+          dislikes: 0,
+          comments: 0,
+          shares: 0,
+          estimatedRevenue: 0,
+          cpm: 0,
+          ctr: 0,
+          impressions: 0,
+          impressionsClickable: 0,
+        };
+      }
+
+      const row = response.rows[0];
+      // impressions 메트릭이 없으므로 ctr은 0으로 설정
+      const analyticsData = {
+        views: row[0] || 0,
+        estimatedMinutesWatched: row[1] || 0,
+        averageViewDuration: this.formatDuration(row[2] || 0),
+        subscribersGained: 0,
+        subscribersLost: 0,
+        likes: row[3] || 0,
+        dislikes: row[4] || 0,
+        comments: row[5] || 0,
+        shares: row[6] || 0,
+        estimatedRevenue: row[7] || 0,
+        cpm: 0,
+        ctr: 0, // 비디오 레벨에서는 impressions 데이터가 없어 ctr 계산 불가
+        impressions: 0,
+        impressionsClickable: 0,
+      };
+
+      // 캐시에 저장
+      this.setCache(cacheKey, analyticsData);
+      
+      return analyticsData;
+    } catch (error: any) {
+      // 에러 메시지 확인
+      const errorMessage = error?.message || '';
+      const statusCode = error?.statusCode;
+      
+      // 403 Forbidden 또는 500 Internal Server Error 시 만료된 캐시 사용 시도
+      if (error?.isQuotaExceeded || 
+          statusCode === 403 || 
+          statusCode === 500 ||
+          errorMessage.includes('Forbidden') || 
+          errorMessage.includes('internal error') ||
+          errorMessage.includes('Unknown identifier')) {
+        // 캐시에서 데이터 로드 시도 (성공 시에만 로그)
+        const expiredCache = this.getFromCache<YouTubeAnalytics>(cacheKey, this.CACHE_DURATION, true);
+        if (expiredCache) {
+          return expiredCache;
+        }
+        const persistentCache = this.getFromPersistentCache<YouTubeAnalytics>(cacheKey, true);
+        if (persistentCache) {
+          return persistentCache;
+        }
+      }
+      
+      // 캐시도 없으면 기본값 반환 (조용히 처리)
       return {
         views: 0,
         estimatedMinutesWatched: 0,
@@ -656,24 +1040,44 @@ export class YouTubeAPI {
         impressionsClickable: 0,
       };
     }
+  }
 
-    const row = response.rows[0];
-    return {
-      views: row[0] || 0,
-      estimatedMinutesWatched: row[1] || 0,
-      averageViewDuration: this.formatDuration(row[2] || 0),
-      subscribersGained: 0,
-      subscribersLost: 0,
-      likes: row[3] || 0,
-      dislikes: row[4] || 0,
-      comments: row[5] || 0,
-      shares: row[6] || 0,
-      estimatedRevenue: row[7] || 0,
-      cpm: 0,
-      ctr: 0,
-      impressions: 0,
-      impressionsClickable: 0,
-    };
+  // 여러 비디오의 분석 데이터를 한 번에 가져오기
+  async getMultipleVideoAnalytics(
+    videoIds: string[],
+    startDate: string,
+    endDate: string
+  ): Promise<Map<string, YouTubeAnalytics>> {
+    const result = new Map<string, YouTubeAnalytics>();
+    
+    // YouTube Analytics API는 한 번에 하나의 비디오만 조회 가능하므로 순차 처리
+    for (const videoId of videoIds) {
+      try {
+        const analytics = await this.getVideoAnalytics(videoId, startDate, endDate);
+        result.set(videoId, analytics);
+      } catch (error) {
+        console.error(`비디오 ${videoId} 분석 데이터 가져오기 실패:`, error);
+        // 실패한 경우 기본값 설정
+        result.set(videoId, {
+          views: 0,
+          estimatedMinutesWatched: 0,
+          averageViewDuration: '0:00',
+          subscribersGained: 0,
+          subscribersLost: 0,
+          likes: 0,
+          dislikes: 0,
+          comments: 0,
+          shares: 0,
+          estimatedRevenue: 0,
+          cpm: 0,
+          ctr: 0,
+          impressions: 0,
+          impressionsClickable: 0,
+        });
+      }
+    }
+    
+    return result;
   }
 
   // 연령대별 시청자 데이터 가져오기

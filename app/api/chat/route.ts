@@ -22,7 +22,8 @@ const openai = new OpenAI({
 
 export async function POST(request: NextRequest) {
   try {
-    const { conversationId, message, userId } = await request.json();
+    const body = await request.json();
+    const { conversationId, message, userId, accessToken } = body;
 
     if (!message || !userId) {
       return NextResponse.json(
@@ -108,17 +109,77 @@ export async function POST(request: NextRequest) {
       content: msg.content,
     }));
 
+    // 사용자의 채널 데이터 가져오기
+    let channelContext = '';
+    try {
+      const token = accessToken || request.headers.get('x-youtube-token');
+      
+      if (token) {
+        const { YouTubeAPI } = await import('@/lib/youtube/api');
+        const youtubeAPI = new YouTubeAPI(token);
+        
+        try {
+          const channel = await youtubeAPI.getChannelInfo();
+          const videos = await youtubeAPI.getVideos(undefined, 5);
+          
+          const endDate = new Date().toISOString().split('T')[0];
+          const startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+          const analytics = await youtubeAPI.getChannelAnalytics(channel.id, startDate, endDate);
+          
+          channelContext = `
+사용자의 채널 데이터:
+- 채널명: ${channel.title}
+- 구독자 수: ${parseInt(channel.statistics.subscriberCount || '0').toLocaleString()}명
+- 총 영상 수: ${channel.statistics.videoCount}개
+- 최근 30일 조회수: ${analytics.views.toLocaleString()}
+- 최근 30일 평균 시청 지속시간: ${analytics.averageViewDuration}
+- 최근 30일 CTR: ${(analytics.ctr ?? 0).toFixed(2)}%
+- 최근 30일 구독자 증가: ${analytics.subscribersGained}명
+
+최근 영상 5개:
+${videos.map((v, i) => `
+${i + 1}. ${v.title}
+   - 조회수: ${parseInt(v.statistics.viewCount || '0').toLocaleString()}
+   - 좋아요: ${parseInt(v.statistics.likeCount || '0').toLocaleString()}
+   - 업로드일: ${new Date(v.publishedAt).toLocaleDateString('ko-KR')}
+`).join('')}
+`;
+        } catch (error) {
+          console.error('채널 데이터 가져오기 실패:', error);
+        }
+      }
+    } catch (error) {
+      console.error('채널 데이터 처리 오류:', error);
+    }
+    
     const completion = await openai.chat.completions.create({
       model: 'gpt-4o-mini',
       messages: [
         {
-          "role": "system",
-          "content": "당신은 최신 유튜브 트렌드에 특화된 AI 어시스턴트입니다. 항상 현재 날짜를 기준으로 가장 최근의 트렌드, 알고리즘 변화, 시청자 패턴, 콘텐츠 전략을 제공합니다. 최신 데이터가 없을 경우 과거 정보를 그대로 말하지 않고, 현재 날짜를 기준으로 합리적 추론을 사용해 설명합니다. 당신의 역할은 다음과 같습니다. 1) 유튜브 알고리즘 변화 분석 (노출, CTR, AVD, 시청자 유지) 2) 최신 트렌드 콘텐츠 주제 추천 (국내, 해외 포함) 3) Shorts 트렌드, 업로드 시간, 태그 및 메타데이터 최적화 조언 4) 채널 성장 전략과 브랜딩 전략 제시 5) 썸네일과 제목 최적화 실전 팁 제공 6) 한국 유튜브 생태계 기준의 최신 흐름 우선 답변. 규칙은 다음과 같습니다. 첫째, 반드시 오늘 날짜를 기준으로 설명할 것. 둘째, 2023년 등 오래된 정보는 참고만 하고 그대로 단정하지 말 것. 셋째, 사용자가 바로 실행할 수 있는 실전 조언 위주로 답변할 것. 넷째, 유튜버가 실제로 쓰는 방식처럼 구체적이고 자연스러운 설명을 제공할 것. 다섯째, 가능한 경우 숫자, 예시, 비교 등을 활용할 것. 여섯째, 마크다운 문법(예: #, ##, *, -, **, ``` 등)은 절대로 사용하지 않고 순수한 텍스트 형식으로만 답변할 것."
+          role: "system",
+          content: `당신은 사용자의 유튜브 채널 데이터를 기반으로 맞춤형 조언을 제공하는 AI 코치입니다. 
+
+${channelContext ? `현재 사용자의 채널 데이터가 제공되었습니다. 이 데이터를 기반으로 개인화된 조언을 제공하세요.` : '채널 데이터가 제공되지 않았습니다. 일반적인 유튜브 전략과 최신 트렌드를 바탕으로 조언을 제공하세요.'}
+
+당신의 핵심 역할:
+1. 사용자의 채널 데이터(상위 영상 주제, 길이, 썸네일 스타일, 시청자 연령/성비, 업로드 패턴 등)를 분석하여 개인화된 조언 제공
+2. 데이터 기반 의사결정 지원: "이번 주에 뭘 찍는 게 좋을까?", "지난주 영상 중에 리메이크하면 좋을 것 같은 거 골라줘", "10분짜리로 올릴까 쇼츠로 쪼갤까?" 같은 질문에 구체적 답변
+3. 항상 데이터 근거를 포함한 답변 제공 (예: "최근 3개월 동안 8-10분 영상의 평균 시청 지속시간이 65%로 가장 높고, 쇼츠는 구독자 전환율이 낮습니다. 그래서 이번 주는 8-10분 길이의 정보형 영상 1개를 추천합니다.")
+4. 실행 가능한 액션 아이템 제시: 단순 조언이 아닌 "오늘 바로 할 수 있는 3가지" 같은 구체적 실행 계획
+5. 경쟁 채널/시장 트렌드 분석 및 적용 방안 제시
+
+답변 규칙:
+- 마크다운 문법(#, ##, *, -, **, \`\`\` 등)은 절대로 사용하지 않고 순수한 텍스트 형식으로만 답변
+- 숫자, 통계, 비교 데이터를 적극 활용
+- 사용자의 채널 특성에 맞춘 개인화된 조언 제공
+- 실행 가능한 구체적 액션 위주로 답변
+- 유튜버가 실제로 쓰는 방식처럼 자연스럽고 실용적인 설명
+${channelContext ? '- 제공된 채널 데이터의 구체적인 숫자와 통계를 활용하여 답변하세요.' : ''}`
         },
         ...messages,
       ],
       temperature: 0.7,
-      max_tokens: 1000,
+      max_tokens: 1500,
     });
 
     const aiResponse = completion.choices[0]?.message?.content || '응답을 생성할 수 없습니다.';

@@ -7,6 +7,8 @@ import { useStore } from '@/lib/store';
 import { useYouTube } from '@/hooks/useYouTube';
 import { YouTubeVideo } from '@/lib/youtube/types';
 import { AlertTriangle, Lightbulb, ArrowLeft } from 'lucide-react';
+import VideoHealthReport from '@/components/report/VideoHealthReport';
+import ActionPlan from '@/components/report/ActionPlan';
 
 interface VideoItemProps {
   video: YouTubeVideo;
@@ -86,6 +88,113 @@ function VideoItem({ video, onAnalyze }: VideoItemProps) {
 
 // 영상 분석 상세 컴포넌트
 function VideoAnalysisDetail({ video, onBack }: { video: YouTubeVideo; onBack: () => void }) {
+  const { isConnected, channel, videos } = useYouTube();
+  const [videoAnalytics, setVideoAnalytics] = useState<any>(null);
+  const [channelAvgCtr, setChannelAvgCtr] = useState(0);
+  const [channelSubscribersGained, setChannelSubscribersGained] = useState(0);
+  const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(false);
+  const [avgTitleLength, setAvgTitleLength] = useState(0);
+  const [optimalUploadHour, setOptimalUploadHour] = useState(18);
+
+  // 비디오 Analytics 데이터 가져오기
+  useEffect(() => {
+    const fetchAnalytics = async () => {
+      if (!isConnected || !channel) return;
+
+      setIsLoadingAnalytics(true);
+      try {
+        const accessToken = localStorage.getItem('youtube_access_token');
+        if (!accessToken) return;
+
+        const { YouTubeAPI } = await import('@/lib/youtube/api');
+        const youtubeAPI = new YouTubeAPI(accessToken);
+
+        // 비디오 분석 데이터
+        const endDate = new Date().toISOString().split('T')[0];
+        const publishedDate = new Date(video.publishedAt);
+        const startDate = publishedDate.toISOString().split('T')[0];
+        const analytics = await youtubeAPI.getVideoAnalytics(video.id, startDate, endDate);
+        setVideoAnalytics(analytics);
+
+        // 채널 평균 CTR (Reach Analytics에서 가져오기)
+        const channelEndDate = new Date().toISOString().split('T')[0];
+        const channelStartDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+        try {
+          const reachAnalytics = await youtubeAPI.getChannelReachAnalytics(channel.id, channelStartDate, channelEndDate);
+          setChannelAvgCtr(reachAnalytics.averageCtr || 0);
+        } catch (error) {
+          console.warn('Reach Analytics 가져오기 실패, 기본값 사용:', error);
+        }
+
+        // 채널 Analytics에서 구독자 증가 가져오기
+        const channelAnalytics = await youtubeAPI.getChannelAnalytics(channel.id, channelStartDate, channelEndDate);
+        // 비디오별 구독자 증가는 추정 (채널 전체 증가 / 비디오 수)
+        const estimatedSubGain = videos.length > 0 ? Math.round(channelAnalytics.subscribersGained / videos.length) : 0;
+        setChannelSubscribersGained(estimatedSubGain);
+
+        // 평균 제목 길이 계산 (최근 30일 공개 영상)
+        const recentVideos = videos.filter(v => {
+          const pubDate = new Date(v.publishedAt);
+          const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+          return pubDate >= thirtyDaysAgo && v.status?.privacyStatus === 'public';
+        });
+        
+        if (recentVideos.length > 0) {
+          const totalTitleLength = recentVideos.reduce((sum, v) => sum + (v.title?.length || 0), 0);
+          const avgLength = Math.round(totalTitleLength / recentVideos.length);
+          setAvgTitleLength(avgLength);
+        } else if (videos.length > 0) {
+          // 최근 30일 데이터가 없으면 전체 영상으로 계산
+          const publicVideos = videos.filter(v => v.status?.privacyStatus === 'public');
+          if (publicVideos.length > 0) {
+            const totalTitleLength = publicVideos.reduce((sum, v) => sum + (v.title?.length || 0), 0);
+            const avgLength = Math.round(totalTitleLength / publicVideos.length);
+            setAvgTitleLength(avgLength);
+          }
+        }
+
+        // 최적 업로드 시간 계산 (최근 성과 좋은 영상들의 평균 업로드 시간)
+        const publicVideos = videos.filter(v => v.status?.privacyStatus === 'public');
+        if (publicVideos.length > 0) {
+          // 조회수 기준 상위 30% 영상들의 업로드 시간 분석
+          const sortedVideos = [...publicVideos].sort((a, b) => {
+            const viewsA = parseInt(a.statistics?.viewCount || '0');
+            const viewsB = parseInt(b.statistics?.viewCount || '0');
+            return viewsB - viewsA;
+          });
+          
+          const top30Percent = Math.max(1, Math.ceil(sortedVideos.length * 0.3));
+          const topVideos = sortedVideos.slice(0, top30Percent);
+          
+          const uploadHours = topVideos.map(v => {
+            const pubDate = new Date(v.publishedAt);
+            return pubDate.getHours();
+          });
+          
+          if (uploadHours.length > 0) {
+            // 가장 많이 나타나는 시간대 찾기
+            const hourCounts: Record<number, number> = {};
+            uploadHours.forEach(hour => {
+              hourCounts[hour] = (hourCounts[hour] || 0) + 1;
+            });
+            
+            const mostFrequentHour = Object.entries(hourCounts).reduce((a, b) => 
+              hourCounts[parseInt(a[0])] > hourCounts[parseInt(b[0])] ? a : b
+            )[0];
+            
+            setOptimalUploadHour(parseInt(mostFrequentHour));
+          }
+        }
+      } catch (error) {
+        console.error('Analytics 가져오기 실패:', error);
+      } finally {
+        setIsLoadingAnalytics(false);
+      }
+    };
+
+    fetchAnalytics();
+  }, [isConnected, channel, video.id, videos]);
+
   // 제목 길이 계산
   const titleLength = video.title?.length || 0;
   
@@ -110,6 +219,9 @@ function VideoAnalysisDetail({ video, onBack }: { video: YouTubeVideo; onBack: (
   const mainTitle = titleParts[titleParts.length - 1].trim();
   const tagTitle = titleParts.length > 1 ? titleParts[0].trim() : '';
 
+  // 실제 CTR 값
+  const actualCtr = videoAnalytics?.ctr || 0;
+
   return (
     <div className="space-y-6">
       {/* 뒤로가기 버튼 */}
@@ -121,56 +233,81 @@ function VideoAnalysisDetail({ video, onBack }: { video: YouTubeVideo; onBack: (
         <span>목록으로 돌아가기</span>
       </button>
 
+      {/* 영상 건강 리포트 */}
+      {/* <VideoHealthReport video={video} /> */}
+
       {/* 영상 분석결과 섹션 */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* 왼쪽: 분석 결과 */}
         <div className="space-y-6">
-          {/* 경고 박스 */}
-          <div className="bg-[#ff8953]/20 border border-[#ff8953]/40 rounded-lg p-4 flex items-start gap-3">
-            <AlertTriangle className="w-5 h-5 text-[#ff8953] flex-shrink-0 mt-0.5" />
-            <p className="text-[#f5f5f5] text-base font-normal">
-              CTR이 낮아 초기 노출이 부족했습니다.
-            </p>
-          </div>
-
           {/* 메트릭 카드들 */}
           <div className="grid grid-cols-2 gap-4">
             {/* 제목길이 */}
             <div className="bg-[#1c1c28] border border-[#3a3b50] rounded-lg p-4">
               <p className="text-[#aaaaaa] text-sm mb-2">제목길이</p>
               <p className="text-[#f5f5f5] text-2xl font-bold mb-1">{titleLength}</p>
-              <p className="text-[#aaaaaa] text-xs">(권장 25~30자)</p>
+              <p className="text-[#aaaaaa] text-xs">
+                {isLoadingAnalytics ? '로딩 중...' : 
+                 avgTitleLength > 0 ? `(채널 평균 ${avgTitleLength}자)` : 
+                 '(권장 25~30자)'}
+              </p>
             </div>
 
             {/* 업로드시간 */}
             <div className="bg-[#1c1c28] border border-[#3a3b50] rounded-lg p-4">
               <p className="text-[#aaaaaa] text-sm mb-2">업로드시간</p>
               <p className="text-[#f5f5f5] text-2xl font-bold mb-1">{uploadHour}시</p>
-              <p className="text-[#aaaaaa] text-xs">(18시 업로드 권장)</p>
+              <p className="text-[#aaaaaa] text-xs">
+                {isLoadingAnalytics ? '로딩 중...' : 
+                 optimalUploadHour > 0 ? `(최적 시간 ${optimalUploadHour}시)` : 
+                 '(권장 18시)'}
+              </p>
             </div>
 
             {/* 키워드 */}
             <div className="bg-[#1c1c28] border border-[#3a3b50] rounded-lg p-4">
               <p className="text-[#aaaaaa] text-sm mb-2">키워드</p>
               <p className="text-[#f5f5f5] text-base font-normal mb-1 line-clamp-2">{keywordText}</p>
-              <p className="text-[#aaaaaa] text-xs">(키워드 부족)</p>
+              <p className="text-[#aaaaaa] text-xs">
+                {keywords.length === 0 ? '(키워드 없음)' :
+                 keywords.length < 3 ? '(키워드 부족)' :
+                 keywords.length < 5 ? '(키워드 적정)' :
+                 '(키워드 충분)'}
+              </p>
             </div>
 
             {/* 썸네일 CTR */}
             <div className="bg-[#1c1c28] border border-[#3a3b50] rounded-lg p-4">
               <p className="text-[#aaaaaa] text-sm mb-2">썸네일 CTR</p>
-              <p className="text-[#f5f5f5] text-2xl font-bold mb-1">3.2%</p>
-              <p className="text-[#aaaaaa] text-xs">(평균 이하)</p>
+              <p className="text-[#f5f5f5] text-2xl font-bold mb-1">
+                {isLoadingAnalytics ? '...' : `${actualCtr.toFixed(2)}%`}
+              </p>
+              <p className="text-[#aaaaaa] text-xs">
+                {isLoadingAnalytics ? '로딩 중...' : 
+                 channelAvgCtr > 0 && actualCtr < channelAvgCtr * 0.8 ? `(평균 ${channelAvgCtr.toFixed(2)}% 이하)` :
+                 channelAvgCtr > 0 && actualCtr >= channelAvgCtr * 1.2 ? `(평균 ${channelAvgCtr.toFixed(2)}% 이상)` :
+                 channelAvgCtr > 0 ? `(평균 ${channelAvgCtr.toFixed(2)}% 수준)` :
+                 '(데이터 없음)'}
+              </p>
             </div>
           </div>
 
           {/* AI 추천 박스 */}
-          <div className="bg-[#ff8953]/10 border border-[#ff8953]/30 rounded-lg p-4 flex items-start gap-3">
-            <Lightbulb className="w-5 h-5 text-[#ff8953] flex-shrink-0 mt-0.5" />
-            <p className="text-[#f5f5f5] text-sm font-normal leading-relaxed">
-              이번 영상은 CTR이 낮고, 업로드 시간이 늦어 초기 노출이 부족했습니다. 업로드 시간을 18시로 조정하고, 제목 길이를 조금 줄이는 것을 추천 합니다
-            </p>
-          </div>
+          {/* {videoAnalytics && (
+            <div className="bg-[#ff8953]/10 border border-[#ff8953]/30 rounded-lg p-4 flex items-start gap-3">
+              <Lightbulb className="w-5 h-5 text-[#ff8953] flex-shrink-0 mt-0.5" />
+              <p className="text-[#f5f5f5] text-sm font-normal leading-relaxed">
+                {channelAvgCtr > 0 && actualCtr < channelAvgCtr * 0.8 
+                  ? `이번 영상은 CTR이 ${actualCtr.toFixed(2)}%로 채널 평균(${channelAvgCtr.toFixed(2)}%)보다 낮습니다. ${optimalUploadHour > 0 && uploadHour !== optimalUploadHour ? `업로드 시간을 ${optimalUploadHour}시로 조정하고, ` : ''}제목 길이를 조금 줄이고 썸네일을 개선하는 것을 추천합니다.`
+                  : channelAvgCtr > 0 && actualCtr >= channelAvgCtr * 1.2
+                  ? `이번 영상은 CTR이 ${actualCtr.toFixed(2)}%로 채널 평균(${channelAvgCtr.toFixed(2)}%)보다 높습니다. 현재 전략을 유지하면서 더 나은 성과를 위해 제목과 썸네일을 지속적으로 개선해보세요.`
+                  : channelAvgCtr > 0
+                  ? `이번 영상은 CTR이 ${actualCtr.toFixed(2)}%로 채널 평균(${channelAvgCtr.toFixed(2)}%) 수준입니다. ${optimalUploadHour > 0 && uploadHour !== optimalUploadHour ? `업로드 시간을 ${optimalUploadHour}시로 조정하고, ` : ''}제목과 썸네일을 개선하여 더 나은 성과를 노려보세요.`
+                  : `이번 영상의 CTR은 ${actualCtr.toFixed(2)}%입니다. ${optimalUploadHour > 0 && uploadHour !== optimalUploadHour ? `업로드 시간을 ${optimalUploadHour}시로 조정하고, ` : ''}제목과 썸네일을 개선하여 더 나은 성과를 노려보세요.`
+                }
+              </p>
+            </div>
+          )} */}
         </div>
 
         {/* 오른쪽: 썸네일 */}
@@ -210,10 +347,15 @@ function VideoAnalysisDetail({ video, onBack }: { video: YouTubeVideo; onBack: (
           <p className="text-[#f5f5f5] text-3xl font-bold">{likes.toLocaleString()}</p>
         </div>
         <div className="bg-[#1c1c28] border border-[#3a3b50] rounded-lg p-6">
-          <p className="text-[#aaaaaa] text-sm mb-2">구독자 증가 수</p>
-          <p className="text-[#f5f5f5] text-3xl font-bold">41</p>
+          <p className="text-[#aaaaaa] text-sm mb-2">구독자 증가 수 (추정)</p>
+          <p className="text-[#f5f5f5] text-3xl font-bold">
+            {isLoadingAnalytics ? '...' : channelSubscribersGained.toLocaleString()}
+          </p>
+          <p className="text-[#aaaaaa] text-xs mt-1">*비디오별 구독자 증가는 추정치입니다</p>
         </div>
       </div>
+
+     
     </div>
   );
 }

@@ -37,6 +37,9 @@ export default function Chatbot() {
     setIsLoading(true);
 
     try {
+      // YouTube access token 가져오기
+      const accessToken = localStorage.getItem('youtube_access_token');
+
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
@@ -46,6 +49,7 @@ export default function Chatbot() {
           conversationId: conversationId,
           message: question.trim(),
           userId: user.id,
+          accessToken: accessToken || undefined,
         }),
       });
 
@@ -90,6 +94,9 @@ export default function Chatbot() {
     setIsLoading(true);
 
     try {
+      // YouTube access token 가져오기
+      const accessToken = localStorage.getItem('youtube_access_token');
+
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
@@ -99,6 +106,7 @@ export default function Chatbot() {
           conversationId: conversationId,
           message: userMessage.content,
           userId: user.id,
+          accessToken: accessToken || undefined,
         }),
       });
 
@@ -155,9 +163,12 @@ export default function Chatbot() {
           <div className="flex-1 flex flex-col items-center justify-center px-8 py-6">
             {/* 메인 타이틀 */}
             <div className="mb-12">
-              <h1 className="text-3xl md:text-4xl font-bold text-center bg-gradient-to-r from-[#ff8953] via-[#ffb05b] to-[#ffd700] bg-clip-text text-transparent">
-                AI에게 트렌드 콘텐츠를 물어보세요!
+              <h1 className="text-3xl md:text-4xl font-bold text-center bg-gradient-to-r from-[#ff8953] via-[#ffb05b] to-[#ffd700] bg-clip-text text-transparent mb-3">
+                내 채널 전용 AI 코치
               </h1>
+              <p className="text-[#aaaaaa] text-center text-base">
+                채널 데이터를 분석해 오늘 바로 실행할 수 있는 조언을 드립니다
+              </p>
             </div>
 
             {/* 가운데 입력 필드 */}
@@ -208,22 +219,22 @@ export default function Chatbot() {
             {!input.trim() && (
               <div className="mt-6 flex flex-wrap justify-center gap-3">
                 <button
-                  onClick={() => handleExampleClick('요즘 유튜브 트렌드 따라잡기')}
+                  onClick={() => handleExampleClick('이번 주에 뭘 찍는 게 좋을까?')}
                   className="px-4 py-2.5 border border-[#3a3b50] rounded-full text-[#f5f5f5] text-sm hover:bg-[#2a2a3a] hover:border-[#ff8953] transition-all"
                 >
-                  요즘 유튜브 트렌드 따라잡기
+                  이번 주에 뭘 찍는 게 좋을까?
                 </button>
                 <button
-                  onClick={() => handleExampleClick('최근에 유행중인 이슈 알려줘')}
+                  onClick={() => handleExampleClick('지난주 영상 중에 리메이크하면 좋을 것 같은 거 골라줘')}
                   className="px-4 py-2.5 border border-[#3a3b50] rounded-full text-[#f5f5f5] text-sm hover:bg-[#2a2a3a] hover:border-[#ff8953] transition-all"
                 >
-                  최근에 유행중인 이슈 알려줘
+                  리메이크 추천 영상 찾기
                 </button>
                 <button
-                  onClick={() => handleExampleClick('유행중인 첼린지 목록 정리 해줘')}
+                  onClick={() => handleExampleClick('10분짜리로 올릴까 쇼츠로 쪼갤까?')}
                   className="px-4 py-2.5 border border-[#3a3b50] rounded-full text-[#f5f5f5] text-sm hover:bg-[#2a2a3a] hover:border-[#ff8953] transition-all"
                 >
-                  유행중인 첼린지 목록 정리 해줘
+                  10분짜리 vs 쇼츠 비교
                 </button>
               </div>
             )}

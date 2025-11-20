@@ -64,9 +64,13 @@ export interface YouTubeAnalytics {
   shares: number;
   estimatedRevenue: number;
   cpm: number;
-  ctr: number;
-  impressions: number;
-  impressionsClickable: number;
+  /**
+   * CTR 및 노출 데이터는 reach 리포트에서 별도로 계산됨
+   * getChannelAnalytics 호출에서는 기본값(0)으로 유지됨
+   */
+  ctr?: number;
+  impressions?: number;
+  impressionsClickable?: number;
 }
 
 export interface YouTubeAnalyticsData {
@@ -98,4 +102,20 @@ export interface YouTubeError {
       reason: string;
     }>;
   };
+}
+
+export interface YouTubeReachAnalyticsRow {
+  date: string;
+  impressions: number;
+  impressionsCtr: number;
+  impressionsViewerPercentage: number;
+  views: number;
+}
+
+export interface YouTubeReachAnalytics {
+  totalImpressions: number;
+  averageCtr: number;
+  averageViewerPercentage: number;
+  totalViews: number;
+  rows: YouTubeReachAnalyticsRow[];
 }

@@ -11,14 +11,17 @@ interface CalendarEvent {
   duration?: string;
   likes?: number;
   publishedAt: string;
+  performance?: 'high' | 'medium' | 'low'; // 성과 지표
+  avgViews?: number; // 평균 조회수 (비교용)
 }
 
 interface CalendarProps {
   events?: CalendarEvent[];
   onVideoClick?: (video: CalendarEvent) => void;
+  onDateClick?: (date: Date) => void;
 }
 
-export default function Calendar({ events = [], onVideoClick }: CalendarProps) {
+export default function Calendar({ events = [], onVideoClick, onDateClick }: CalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date());
   
   const monthNames = [
@@ -79,6 +82,35 @@ export default function Calendar({ events = [], onVideoClick }: CalendarProps) {
     return events.filter(event => 
       event.date.toDateString() === date.toDateString()
     );
+  };
+
+  // 성과에 따른 색상 결정
+  const getPerformanceColor = (performance?: 'high' | 'medium' | 'low') => {
+    if (!performance) return 'border-[#3a3b50]';
+    switch (performance) {
+      case 'high':
+        return 'border-green-500/50 bg-green-500/10';
+      case 'medium':
+        return 'border-yellow-500/50 bg-yellow-500/10';
+      case 'low':
+        return 'border-red-500/50 bg-red-500/10';
+      default:
+        return 'border-[#3a3b50]';
+    }
+  };
+
+  const getPerformanceBadge = (performance?: 'high' | 'medium' | 'low') => {
+    if (!performance) return null;
+    switch (performance) {
+      case 'high':
+        return <span className="absolute top-1 right-1 w-2 h-2 bg-green-500 rounded-full" />;
+      case 'medium':
+        return <span className="absolute top-1 right-1 w-2 h-2 bg-yellow-500 rounded-full" />;
+      case 'low':
+        return <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full" />;
+      default:
+        return null;
+    }
   };
   
   const navigateMonth = (direction: 'prev' | 'next') => {
@@ -164,11 +196,18 @@ export default function Calendar({ events = [], onVideoClick }: CalendarProps) {
                 }`}
               >
                 <div className="flex flex-col h-full">
-                  <div className={`text-sm mb-1 ${
-                    day.isCurrentMonth 
-                      ? 'text-[#f5f5f5]' 
-                      : 'text-[#f5f5f5]/60'
-                  }`}>
+                  <div 
+                    className={`text-sm mb-1 ${
+                      day.isCurrentMonth 
+                        ? 'text-[#f5f5f5]' 
+                        : 'text-[#f5f5f5]/60'
+                    } ${onDateClick && day.isCurrentMonth && day.fullDate >= new Date(new Date().setHours(0, 0, 0, 0)) ? 'cursor-pointer hover:text-[#ff8953]' : ''}`}
+                    onClick={() => {
+                      if (onDateClick && day.isCurrentMonth && day.fullDate >= new Date(new Date().setHours(0, 0, 0, 0))) {
+                        onDateClick(day.fullDate);
+                      }
+                    }}
+                  >
                     {day.date}일
                   </div>
                   
@@ -177,27 +216,50 @@ export default function Calendar({ events = [], onVideoClick }: CalendarProps) {
                     {dayEvents.slice(0, 3).map((event, eventIndex) => (
                       <div
                         key={event.id}
-                        className="relative group cursor-pointer"
+                        className={`relative group cursor-pointer ${getPerformanceColor(event.performance)}`}
                         onClick={() => onVideoClick?.(event)}
+                        title={event.performance ? 
+                          `성과: ${event.performance === 'high' ? '높음' : event.performance === 'medium' ? '보통' : '낮음'}` : 
+                          event.title
+                        }
                       >
                         {event.thumbnail ? (
                           <div className="relative">
                             <img
                               src={event.thumbnail}
                               alt={event.title}
-                              className="w-full h-16 object-cover rounded"
+                              className="w-full h-16 object-cover rounded border-2"
                             />
+                            {getPerformanceBadge(event.performance)}
                             <div className="absolute inset-0 bg-black/40 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                              <span className="text-white text-xs font-medium text-center px-1">
-                                {event.title}
-                              </span>
+                              <div className="text-white text-xs font-medium text-center px-1">
+                                <div className="mb-1">{event.title}</div>
+                                {event.views && event.avgViews && (
+                                  <div className="text-[10px]">
+                                    조회수: {event.views.toLocaleString()}
+                                    {event.performance === 'high' && ' ↑'}
+                                    {event.performance === 'low' && ' ↓'}
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           </div>
                         ) : (
-                          <div className="bg-[#ff8953]/20 border border-[#ff8953]/40 rounded px-2 py-1">
-                            <span className="text-[#ff8953] text-xs font-medium truncate block">
+                          <div className={`${event.isPlanned ? 'bg-blue-500/20 border-blue-500/50' : 'bg-[#ff8953]/20 border-[#ff8953]/40'} border-2 rounded px-2 py-1 relative ${getPerformanceColor(event.performance)}`}>
+                            {getPerformanceBadge(event.performance)}
+                            {event.isPlanned && (
+                              <span className="absolute top-1 left-1 w-2 h-2 bg-blue-500 rounded-full" />
+                            )}
+                            <span className={`${event.isPlanned ? 'text-blue-400' : 'text-[#ff8953]'} text-xs font-medium truncate block`}>
                               {event.title}
                             </span>
+                            {event.status && (
+                              <span className="text-[10px] text-[#aaaaaa] block mt-0.5">
+                                {event.status === 'idea' ? '💡 아이디어' : 
+                                 event.status === 'planned' ? '📅 계획됨' : 
+                                 '🎬 제작 중'}
+                              </span>
+                            )}
                           </div>
                         )}
                       </div>
