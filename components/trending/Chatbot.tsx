@@ -273,7 +273,7 @@ export default function Chatbot() {
                 <button
                   onClick={() =>
                     handleExampleClick(
-                      '지난주 영상 중에 리메이크하면 좋을 것 같은 거 골라줘'
+                      '리메이크 추천 영상 찾기'
                     )
                   }
                   className="px-4 py-2.5 border border-[#3a3b50] rounded-full text-[#f5f5f5] text-sm hover:bg-[#2a2a3a] hover:border-[#ff8953] transition-all"
@@ -282,7 +282,7 @@ export default function Chatbot() {
                 </button>
                 <button
                   onClick={() =>
-                    handleExampleClick('10분짜리로 올릴까 쇼츠로 쪼갤까?')
+                    handleExampleClick('10분짜리 vs 쇼츠 비교')
                   }
                   className="px-4 py-2.5 border border-[#3a3b50] rounded-full text-[#f5f5f5] text-sm hover:bg-[#2a2a3a] hover:border-[#ff8953] transition-all"
                 >
