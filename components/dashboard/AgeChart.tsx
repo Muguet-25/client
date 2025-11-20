@@ -55,35 +55,36 @@ export default function AgeChart({ ageGroupData = [], isLoading = false }: AgeCh
       }))
     : ageGroups;
 
+  const activeGroups = normalizedGroups.filter((group) => group.percentage > 0);
+
   return (
-    <div className="bg-[#1c1c28] border border-[#3a3b50] rounded-[20px] p-8">
-      <div className="space-y-10">
-        <h3 className="text-white text-base font-normal">시청자 연령 층</h3>
-        
+    <div className="bg-[#1c1c28] border border-[#3a3b50] rounded-[20px] p-6 h-full flex flex-col justify-between">
+      <div>
+        <h3 className="text-white text-base font-normal mb-4">시청자 연령 층</h3>
         {isLoading ? (
-          <div className="flex items-center justify-center">
-            <p className="text-[#aaaaaa] text-sm">데이터를 불러오는 중...</p>
+          <div className="flex h-24 items-center justify-center rounded-lg bg-[#1f1f2d] text-[#aaaaaa] text-sm">
+            데이터를 불러오는 중...
           </div>
         ) : (
           <div className="space-y-6">
             {/* 차트 바 */}
-            <div className="flex items-end h-8 gap-1">
-              {normalizedGroups.map((group) => (
+            <div className="flex items-end gap-2">
+              {activeGroups.map((group) => (
                 <div 
                   key={group.age} 
-                  className="flex flex-col items-start" 
+                  className="flex flex-1 flex-col items-start"
                   style={{ width: `${group.percentage}%` }}
                 >
                   {group.percentage > 0 && (
                     <>
-                      <span className="text-[#e2e2e4] text-sm opacity-60 mb-2">
+                      <span className="text-[#e2e2e4] text-xs opacity-60 mb-2">
                         {group.percentage.toFixed(1)}%
                       </span>
                       <div 
                         className="w-full rounded-md"
                         style={{
                           backgroundColor: group.color,
-                          height: '32px'
+                          height: '24px'
                         }}
                       />
                     </>
@@ -91,18 +92,18 @@ export default function AgeChart({ ageGroupData = [], isLoading = false }: AgeCh
                 </div>
               ))}
             </div>
-            
+
             {/* 범례 */}
-            <div className="flex items-center gap-4">
+            <div className="flex flex-wrap items-center gap-3">
               {normalizedGroups.map((group) => (
-                <div key={group.age} className="flex items-center space-x-1">
+                <div key={group.age} className="flex items-center gap-1.5">
                   <div 
-                    className="w-2 h-2 rounded-md"
+                    className="w-2.5 h-2.5 rounded-sm"
                     style={{
                       backgroundColor: group.color
                     }}
                   />
-                  <span className="text-[#e2e2e4] text-sm opacity-60">
+                  <span className="text-[#e2e2e4] text-xs opacity-60">
                     {group.age}
                   </span>
                 </div>
