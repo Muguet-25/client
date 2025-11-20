@@ -56,12 +56,12 @@ export default function AgeChart({ ageGroupData = [], isLoading = false }: AgeCh
     : ageGroups;
 
   return (
-    <div className="bg-[#1c1c28] border border-[#3a3b50] rounded-[20px] p-6">
+    <div className="bg-[#1c1c28] border border-[#3a3b50] rounded-[20px] p-8">
       <div className="space-y-10">
         <h3 className="text-white text-base font-normal">시청자 연령 층</h3>
         
         {isLoading ? (
-          <div className="flex items-center justify-center h-32">
+          <div className="flex items-center justify-center">
             <p className="text-[#aaaaaa] text-sm">데이터를 불러오는 중...</p>
           </div>
         ) : (
