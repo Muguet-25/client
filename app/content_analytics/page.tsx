@@ -6,7 +6,7 @@ import Sidebar from '@/components/dashboard/Sidebar';
 import { useStore } from '@/lib/store';
 import { useYouTube } from '@/hooks/useYouTube';
 import { YouTubeVideo } from '@/lib/youtube/types';
-import { AlertTriangle, Lightbulb, ArrowLeft } from 'lucide-react';
+import { AlertTriangle, Lightbulb, ArrowLeft, UserPlus, ThumbsUp, Eye, TrendingUp, MessageCircle } from 'lucide-react';
 import VideoHealthReport from '@/components/report/VideoHealthReport';
 import ActionPlan from '@/components/report/ActionPlan';
 
@@ -94,6 +94,8 @@ function VideoAnalysisDetail({ video, onBack }: { video: YouTubeVideo; onBack: (
   const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(false);
   const [avgTitleLength, setAvgTitleLength] = useState(0);
   const [optimalUploadHour, setOptimalUploadHour] = useState(18);
+  const [videoInsights, setVideoInsights] = useState<{ issues: Array<{ title: string; description: string; severity: string }>; causes: string[] } | null>(null);
+  const [isLoadingInsights, setIsLoadingInsights] = useState(false);
 
   // 비디오 Analytics 데이터 가져오기
   useEffect(() => {
@@ -186,6 +188,88 @@ function VideoAnalysisDetail({ video, onBack }: { video: YouTubeVideo; onBack: (
     fetchAnalytics();
   }, [isConnected, channel, video.id, videos]);
 
+  // AI 기반 비디오 인사이트 가져오기
+  useEffect(() => {
+    const fetchVideoInsights = async () => {
+      if (!videoAnalytics || !video) return;
+
+      setIsLoadingInsights(true);
+      try {
+        // 평균 시청 지속시간을 초로 변환
+        const parseDurationToSeconds = (duration: string): number => {
+          if (duration.includes('PT')) {
+            const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+            if (!match) return 0;
+            const hours = parseInt(match[1] || '0');
+            const minutes = parseInt(match[2] || '0');
+            const seconds = parseInt(match[3] || '0');
+            return hours * 3600 + minutes * 60 + seconds;
+          }
+          return 0;
+        };
+
+        const videoDurationSeconds = parseDurationToSeconds(video.duration || 'PT0S');
+        const avgWatchDurationSeconds = parseDurationToSeconds(videoAnalytics.averageViewDuration || 'PT0S');
+        const watchRetentionRate = videoDurationSeconds > 0 
+          ? (avgWatchDurationSeconds / videoDurationSeconds) * 100
+          : 0;
+
+        // 채널 평균 참여도 계산
+        const publicVideos = videos.filter(v => v.status?.privacyStatus === 'public');
+        const totalViews = publicVideos.reduce((sum, v) => sum + parseInt(v.statistics?.viewCount || '0'), 0);
+        const totalLikes = publicVideos.reduce((sum, v) => sum + parseInt(v.statistics?.likeCount || '0'), 0);
+        const totalComments = publicVideos.reduce((sum, v) => sum + parseInt(v.statistics?.commentCount || '0'), 0);
+        const avgEngagement = totalViews > 0 ? ((totalLikes + totalComments) / totalViews) * 100 : 0;
+
+        // 현재 비디오 참여도
+        const views = parseInt(video.statistics?.viewCount || '0');
+        const likes = parseInt(video.statistics?.likeCount || '0');
+        const comments = parseInt(video.statistics?.commentCount || '0');
+        const engagement = views > 0 ? ((likes + comments) / views) * 100 : 0;
+
+        const response = await fetch('/api/video-insights', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            video: {
+              title: video.title || '',
+              description: video.description || '',
+              tags: video.snippet?.tags || [],
+              publishedAt: video.publishedAt || '',
+            },
+            metrics: {
+              retentionRate: watchRetentionRate,
+              watchDuration: avgWatchDurationSeconds,
+              videoDuration: videoDurationSeconds,
+              engagement: engagement,
+              avgEngagement: avgEngagement,
+              views: views,
+              likes: likes,
+              comments: comments,
+            },
+          }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setVideoInsights(data);
+        } else {
+          console.error('비디오 인사이트 가져오기 실패:', response.statusText);
+        }
+      } catch (error) {
+        console.error('비디오 인사이트 가져오기 실패:', error);
+      } finally {
+        setIsLoadingInsights(false);
+      }
+    };
+
+    if (videoAnalytics) {
+      fetchVideoInsights();
+    }
+  }, [videoAnalytics, video, videos]);
+
   // 제목 길이 계산
   const titleLength = video.title?.length || 0;
   
@@ -205,130 +289,197 @@ function VideoAnalysisDetail({ video, onBack }: { video: YouTubeVideo; onBack: (
   // 썸네일
   const thumbnail = video.thumbnails?.high?.url || video.thumbnails?.medium?.url || video.thumbnails?.default?.url || '';
   
-  // 제목에서 태그 부분과 메인 제목 분리
-  const titleParts = video.title?.split('|') || [video.title || ''];
-  const mainTitle = titleParts[titleParts.length - 1].trim();
-  const tagTitle = titleParts.length > 1 ? titleParts[0].trim() : '';
+  // 평균 시청 지속률 계산
+  const parseDurationToSeconds = (duration: string): number => {
+    if (duration.includes('PT')) {
+      const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
+      if (!match) return 0;
+      const hours = parseInt(match[1] || '0');
+      const minutes = parseInt(match[2] || '0');
+      const seconds = parseInt(match[3] || '0');
+      return hours * 3600 + minutes * 60 + seconds;
+    }
+    return 0;
+  };
+
+  // 초를 MM:SS 또는 HH:MM:SS 형식으로 변환
+  const formatSecondsToTime = (seconds: number): string => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = Math.floor(seconds % 60);
+    
+    if (hours > 0) {
+      return `${hours}시간 ${minutes}분 ${secs}초`;
+    } else if (minutes > 0) {
+      return `${minutes}분 ${secs}초`;
+    } else {
+      return `${secs}초`;
+    }
+  };
+
+  const videoDurationSeconds = parseDurationToSeconds(video.duration || 'PT0S');
+  const avgWatchDurationSeconds = videoAnalytics?.averageViewDuration 
+    ? parseDurationToSeconds(videoAnalytics.averageViewDuration)
+    : 0;
+  const watchRetentionRate = videoDurationSeconds > 0 
+    ? Math.round((avgWatchDurationSeconds / videoDurationSeconds) * 100)
+    : 0;
+
+  // 좋아요/댓글 전환률 계산
+  const likeRate = views > 0 ? Math.round((likes / views) * 100) : 0;
+  const commentRate = views > 0 ? Math.round((comments / views) * 100) : 0;
 
   return (
     <div className="space-y-6">
-      {/* 뒤로가기 버튼 */}
+      {/* 목록으로 돌아가기 버튼 */}
       <button
         onClick={onBack}
-        className="flex items-center gap-2 text-[#f5f5f5] hover:text-[#ff8953] transition-colors mb-4"
+        className="flex items-center gap-2 text-[#f5f5f5] hover:text-[#ff8953] transition-colors"
       >
         <ArrowLeft className="w-5 h-5" />
         <span>목록으로 돌아가기</span>
       </button>
 
-      {/* 영상 건강 리포트 */}
-      {/* <VideoHealthReport video={video} /> */}
+      {/* 영상 제목 */}
+      <h2 className="text-2xl font-semibold text-[#e2e2e4] leading-[26px]">
+        {video.title}
+      </h2>
 
-      {/* 영상 분석결과 섹션 */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* 왼쪽: 분석 결과 */}
-        <div className="space-y-6">
-          {/* 메트릭 카드들 */}
-          <div className="grid grid-cols-2 gap-4">
-            {/* 제목길이 */}
-            <div className="bg-[#1c1c28] border border-[#3a3b50] rounded-lg p-4">
-              <p className="text-[#aaaaaa] text-sm mb-2">제목길이</p>
-              <p className="text-[#f5f5f5] text-2xl font-bold mb-1">{titleLength}</p>
-              <p className="text-[#aaaaaa] text-xs">
-                {isLoadingAnalytics ? '로딩 중...' : 
-                 avgTitleLength > 0 ? `(채널 평균 ${avgTitleLength}자)` : 
-                 '(권장 25~30자)'}
-              </p>
-            </div>
-
-            {/* 업로드시간 */}
-            <div className="bg-[#1c1c28] border border-[#3a3b50] rounded-lg p-4">
-              <p className="text-[#aaaaaa] text-sm mb-2">업로드시간</p>
-              <p className="text-[#f5f5f5] text-2xl font-bold mb-1">{uploadHour}시</p>
-              <p className="text-[#aaaaaa] text-xs">
-                {isLoadingAnalytics ? '로딩 중...' : 
-                 optimalUploadHour > 0 ? `(최적 시간 ${optimalUploadHour}시)` : 
-                 '(권장 18시)'}
-              </p>
-            </div>
-
-            {/* 키워드 */}
-            <div className="bg-[#1c1c28] border border-[#3a3b50] rounded-lg p-4">
-              <p className="text-[#aaaaaa] text-sm mb-2">키워드</p>
-              <p className="text-[#f5f5f5] text-base font-normal mb-1 line-clamp-2">{keywordText}</p>
-              <p className="text-[#aaaaaa] text-xs">
-                {keywords.length === 0 ? '(키워드 없음)' :
-                 keywords.length < 3 ? '(키워드 부족)' :
-                 keywords.length < 5 ? '(키워드 적정)' :
-                 '(키워드 충분)'}
-              </p>
-            </div>
-          </div>
-
-          {/* AI 추천 박스 */}
-          {/* {videoAnalytics && (
-            <div className="bg-[#ff8953]/10 border border-[#ff8953]/30 rounded-lg p-4 flex items-start gap-3">
-              <Lightbulb className="w-5 h-5 text-[#ff8953] flex-shrink-0 mt-0.5" />
-              <p className="text-[#f5f5f5] text-sm font-normal leading-relaxed">
-                {channelAvgCtr > 0 && actualCtr < channelAvgCtr * 0.8 
-                  ? `이번 영상은 CTR이 ${actualCtr.toFixed(2)}%로 채널 평균(${channelAvgCtr.toFixed(2)}%)보다 낮습니다. ${optimalUploadHour > 0 && uploadHour !== optimalUploadHour ? `업로드 시간을 ${optimalUploadHour}시로 조정하고, ` : ''}제목 길이를 조금 줄이고 썸네일을 개선하는 것을 추천합니다.`
-                  : channelAvgCtr > 0 && actualCtr >= channelAvgCtr * 1.2
-                  ? `이번 영상은 CTR이 ${actualCtr.toFixed(2)}%로 채널 평균(${channelAvgCtr.toFixed(2)}%)보다 높습니다. 현재 전략을 유지하면서 더 나은 성과를 위해 제목과 썸네일을 지속적으로 개선해보세요.`
-                  : channelAvgCtr > 0
-                  ? `이번 영상은 CTR이 ${actualCtr.toFixed(2)}%로 채널 평균(${channelAvgCtr.toFixed(2)}%) 수준입니다. ${optimalUploadHour > 0 && uploadHour !== optimalUploadHour ? `업로드 시간을 ${optimalUploadHour}시로 조정하고, ` : ''}제목과 썸네일을 개선하여 더 나은 성과를 노려보세요.`
-                  : `이번 영상의 CTR은 ${actualCtr.toFixed(2)}%입니다. ${optimalUploadHour > 0 && uploadHour !== optimalUploadHour ? `업로드 시간을 ${optimalUploadHour}시로 조정하고, ` : ''}제목과 썸네일을 개선하여 더 나은 성과를 노려보세요.`
-                }
-              </p>
-            </div>
-          )} */}
+      {/* 메인 섹션: 썸네일 + 정보 */}
+      <div className="flex gap-6 items-center">
+        {/* 왼쪽: 썸네일 */}
+        <div className="relative w-[608px] h-[342px] flex-shrink-0 rounded-2xl overflow-hidden">
+          <Image
+            src={thumbnail}
+            alt={video.title || ''}
+            fill
+            className="object-cover"
+          />
         </div>
 
-        {/* 오른쪽: 썸네일 */}
-        <div className="bg-[#1c1c28] border border-[#3a3b50] rounded-lg p-6">
-          <div className="relative w-full aspect-video rounded-lg overflow-hidden mb-4">
-            <Image
-              src={thumbnail}
-              alt={video.title || ''}
-              fill
-              className="object-cover"
-            />
-            {/* 썸네일 오버레이 텍스트 */}
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent p-4 flex flex-col justify-end">
-              {tagTitle && (
-                <p className="text-white text-sm mb-2">&lt;{tagTitle}&gt;</p>
-              )}
-              <p className="text-white text-2xl font-bold leading-tight">{mainTitle}</p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* 영상 제목 섹션 */}
-      <div className="bg-[#1c1c28] border border-[#3a3b50] rounded-lg p-4">
-        <p className="text-[#aaaaaa] text-sm mb-2">영상 제목</p>
-        <p className="text-[#f5f5f5] text-base font-normal">{video.title}</p>
-      </div>
-
-      {/* 통계 섹션 */}
-      <div className="grid grid-cols-3 gap-4">
-        <div className="bg-[#1c1c28] border border-[#3a3b50] rounded-lg p-6">
-          <p className="text-[#aaaaaa] text-sm mb-2">조회수</p>
-          <p className="text-[#f5f5f5] text-3xl font-bold">{views.toLocaleString()}</p>
-        </div>
-        <div className="bg-[#1c1c28] border border-[#3a3b50] rounded-lg p-6">
-          <p className="text-[#aaaaaa] text-sm mb-2">좋아요 수</p>
-          <p className="text-[#f5f5f5] text-3xl font-bold">{likes.toLocaleString()}</p>
-        </div>
-        <div className="bg-[#1c1c28] border border-[#3a3b50] rounded-lg p-6">
-          <p className="text-[#aaaaaa] text-sm mb-2">구독자 증가 수 (추정)</p>
-          <p className="text-[#f5f5f5] text-3xl font-bold">
-            {isLoadingAnalytics ? '...' : channelSubscribersGained.toLocaleString()}
+        {/* 가운데: 영상 제목과 설명 */}
+        <div className="flex-1 flex flex-col justify-center">
+          <h3 className="text-2xl font-semibold text-[#e2e2e4] leading-[26px] mb-2">
+            {video.title}
+          </h3>
+          <p className="text-base text-[#e2e2e4]">
+            {video.description || '설명이 없습니다.'}
           </p>
-          <p className="text-[#aaaaaa] text-xs mt-1">*비디오별 구독자 증가는 추정치입니다</p>
+        </div>
+
+        {/* 오른쪽: 통계 카드들 */}
+        <div className="flex flex-col gap-12 items-start">
+            {/* 구독자 증가량 */}
+            <div className="flex flex-col gap-2 items-start">
+              <div className="flex items-center gap-2">
+                <UserPlus className="w-[18px] h-[18px] text-[#ff8953]" />
+                <span className="text-base text-[#e2e2e4]">구독자 증가량</span>
+              </div>
+              <p className="text-2xl font-semibold text-[#e2e2e4] leading-[26px]">
+                {isLoadingAnalytics 
+                  ? '...' 
+                  : channelSubscribersGained === 0
+                  ? '0'
+                  : channelSubscribersGained > 0
+                  ? `+${channelSubscribersGained.toLocaleString()}`
+                  : `${channelSubscribersGained.toLocaleString()}`}
+              </p>
+            </div>
+
+            {/* 총 좋아요 */}
+            <div className="flex flex-col gap-2 items-start">
+              <div className="flex items-center gap-2">
+                <ThumbsUp className="w-[18px] h-[18px] text-[#ff8953]" />
+                <span className="text-base text-[#e2e2e4]">총 좋아요</span>
+              </div>
+              <p className="text-2xl font-semibold text-[#e2e2e4] leading-[26px]">
+                {likes.toLocaleString()}
+              </p>
+            </div>
+
+            {/* 총 조회수 */}
+            <div className="flex flex-col gap-2 items-start">
+              <div className="flex items-center gap-2">
+                <Eye className="w-[18px] h-[18px] text-[#ff8953]" />
+                <span className="text-base text-[#e2e2e4]">총 조회수</span>
+              </div>
+              <p className="text-2xl font-semibold text-[#e2e2e4] leading-[26px]">
+                {views.toLocaleString()}
+              </p>
+            </div>
         </div>
       </div>
 
-     
+      {/* 분석 섹션 */}
+      <div className="space-y-12 pt-12">
+        {/* 평균시청 지속률 */}
+        <div className="flex gap-4 items-center">
+          <div className="bg-[#1b1c25] border border-[#3a3b50] rounded-lg p-4 w-[201px] flex-shrink-0">
+            <div className="flex items-center gap-2 mb-3">
+              <TrendingUp className="w-6 h-6 text-[#ff8953]" />
+              <span className="text-base text-[#e2e2e4]">평균시청 지속률</span>
+            </div>
+            <p className="text-2xl font-semibold text-[#e2e2e4] leading-[26px]">
+              {isLoadingAnalytics ? '...' : `${watchRetentionRate}%`}
+            </p>
+          </div>
+          <div className="flex-1 flex gap-4 items-center ml-4">
+            <p className="text-base text-[#e2e2e4] leading-[18px]">
+              "영상 길이의 {watchRetentionRate}% 지점까지 평균적으로 시청했습니다."
+            </p>
+            <p className="text-base text-[#e2e2e4] leading-[18px]">
+              "{watchRetentionRate < 30 ? '초반 이탈이 심각합니다. 영상 도입부에 문제가 있을 수 있습니다.' : '시청 지속률이 양호합니다.'}"
+            </p>
+          </div>
+        </div>
+
+        {/* 좋아요/댓글 전환률 */}
+        <div className="flex gap-4 items-center">
+          <div className="bg-[#1b1c25] border border-[#3a3b50] rounded-lg p-4 w-[201px] flex-shrink-0">
+            <div className="flex items-center gap-2 mb-3">
+              <MessageCircle className="w-6 h-6 text-[#ff8953]" />
+              <span className="text-base text-[#e2e2e4]">좋아요 / 댓글 전환률</span>
+            </div>
+            <div className="flex gap-4">
+              <p className="text-2xl font-semibold text-[#e2e2e4] leading-[26px]">
+                {likeRate}%
+              </p>
+              <p className="text-2xl font-semibold text-[#e2e2e4] leading-[26px]">
+                {commentRate}%
+              </p>
+            </div>
+          </div>
+          <div className="flex-1 flex gap-4 items-center ml-4">
+            <p className="text-base text-[#e2e2e4] leading-[18px]">
+              "{likeRate < 5 ? '영상은 많이 봤지만, 공감을 얻지 못했습니다. (타겟층 불일치 가능성)' : '좋아요 전환률이 양호합니다.'}"
+            </p>
+            <p className="text-base text-[#e2e2e4] leading-[18px]">
+              "{commentRate < 2 ? '댓글 참여율이 아주 저조합니다. 댓글 유도를 고민해보세요.' : '댓글 참여율이 양호합니다.'}"
+            </p>
+          </div>
+        </div>
+
+        {/* 상세 분석 */}
+        <div className="bg-[#1b1c25] border border-[#3a3b50] rounded-lg p-4 mt-4">
+          {isLoadingInsights ? (
+            <p className="text-base text-[#e2e2e4] leading-[18px]">분석 중...</p>
+          ) : videoInsights && videoInsights.causes && videoInsights.causes.length > 0 ? (
+            <div className="space-y-3">
+              {videoInsights.causes.map((cause, index) => (
+                <p key={index} className="text-base text-[#e2e2e4] leading-[18px]">
+                  {cause}
+                </p>
+              ))}
+            </div>
+          ) : (
+            <p className="text-base text-[#e2e2e4] leading-[18px]">
+              {watchRetentionRate < 30 
+                ? `평균 시청 시간(${formatSecondsToTime(avgWatchDurationSeconds)})이 영상 길이(${formatSecondsToTime(videoDurationSeconds)}) 대비 너무 짧습니다. 시청 지속률이 ${watchRetentionRate}%로 낮아 초반 이탈이 심각합니다. 영상 도입부를 개선하고 핵심 내용을 앞쪽에 배치하는 것을 고려해보세요.`
+                : `전반적인 시청 지속률(${watchRetentionRate}%)이 양호합니다. 평균 시청 시간은 ${formatSecondsToTime(avgWatchDurationSeconds)}입니다. 더 나은 성과를 위해 제목과 썸네일을 개선해보세요.`}
+            </p>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
