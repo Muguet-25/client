@@ -132,12 +132,22 @@ export default function Dashboard() {
           if (Date.now() - parsed.timestamp < 60 * 60 * 1000) {
             setInsightsData(parsed.data);
           } else {
-            // 캐시 만료 시 새로 가져오기
-            await fetchInsights(channel.id, accessToken, insightsCacheKey);
+            // 캐시 만료 시 새로 가져오기 (최신 데이터 전달)
+            await fetchInsights(channel.id, accessToken, insightsCacheKey, {
+              channel,
+              videos,
+              analytics,
+              videoAnalyticsMap: analyticsMap,
+            });
           }
         } else {
-          // 캐시가 없으면 새로 가져오기
-          await fetchInsights(channel.id, accessToken, insightsCacheKey);
+          // 캐시가 없으면 새로 가져오기 (최신 데이터 전달)
+          await fetchInsights(channel.id, accessToken, insightsCacheKey, {
+            channel,
+            videos,
+            analytics,
+            videoAnalyticsMap: analyticsMap,
+          });
         }
       } catch (error) {
         console.error('인사이트 가져오기 실패:', error);
@@ -152,8 +162,42 @@ export default function Dashboard() {
   }, [youtubeConnected, channel, videos, isLoadingAnalytics, hasLoadedAnalytics]);
 
   // 인사이트 데이터 가져오기 함수
-  const fetchInsights = async (channelId: string, accessToken: string, cacheKey: string) => {
+  const fetchInsights = async (
+    channelId: string, 
+    accessToken: string, 
+    cacheKey: string,
+    currentData?: {
+      channel: typeof channel;
+      videos: typeof videos;
+      analytics: typeof channelAnalytics;
+      videoAnalyticsMap: typeof videoAnalyticsMap;
+    }
+  ) => {
     try {
+      // 전달받은 최신 데이터가 있으면 사용, 없으면 상태에서 가져오기
+      const dataToUse = currentData || {
+        channel,
+        videos: videos.filter((v) => v.status?.privacyStatus === 'public'),
+        analytics: channelAnalytics,
+        videoAnalyticsMap: videoAnalyticsMap,
+      };
+
+      // 캐시된 데이터를 준비 (할당량 초과 시 사용)
+      // Map을 일반 객체로 변환 (JSON 직렬화를 위해)
+      const videoAnalyticsObj: Record<string, { averageViewDuration: string }> = {};
+      if (dataToUse.videoAnalyticsMap) {
+        dataToUse.videoAnalyticsMap.forEach((value, key) => {
+          videoAnalyticsObj[key] = value;
+        });
+      }
+
+      const cachedData = {
+        channel: dataToUse.channel,
+        videos: dataToUse.videos,
+        analytics: dataToUse.analytics,
+        videoAnalyticsMap: videoAnalyticsObj, // Map을 객체로 변환
+      };
+
       const response = await fetch('/api/insights', {
         method: 'POST',
         headers: {
@@ -162,6 +206,7 @@ export default function Dashboard() {
         body: JSON.stringify({
           accessToken,
           channelId,
+          cachedData, // 캐시된 데이터도 함께 전달
         }),
       });
 
@@ -184,6 +229,41 @@ export default function Dashboard() {
             data: insights,
             timestamp: Date.now()
           }));
+        }
+      } else if (response.status === 429) {
+        // 할당량 초과 시 캐시된 데이터로 재시도
+        console.log('할당량 초과 감지, 캐시된 데이터로 재시도');
+        const retryResponse = await fetch('/api/insights', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            channelId,
+            cachedData, // accessToken 없이 캐시된 데이터만 전달
+          }),
+        });
+
+        if (retryResponse.ok) {
+          const data = await retryResponse.json();
+          if (data.success && data.insights) {
+            const insights = {
+              diagnosis: data.insights.diagnosis || "데이터를 분석 중입니다...",
+              weeklyGoal: data.insights.weeklyGoal || "이번 주 목표를 설정해주세요.",
+              actions: data.insights.actions || [
+                "상위 영상 분석하기",
+                "업로드 시간 최적화하기",
+                "썸네일 개선하기"
+              ]
+            };
+            setInsightsData(insights);
+            
+            // localStorage에 캐시 저장 (1시간)
+            localStorage.setItem(cacheKey, JSON.stringify({
+              data: insights,
+              timestamp: Date.now()
+            }));
+          }
         }
       }
     } catch (error) {
@@ -301,10 +381,11 @@ export default function Dashboard() {
             </div>
 
               {/* 인사이트 요약 카드 */}
-              {/* <InsightSummary 
-              insightsData={insightsData}
-              isLoading={isLoadingAnalytics}
-            /> */}
+              <InsightSummary 
+                insightsData={insightsData}
+                isLoading={isLoadingAnalytics}
+                channelId={channel?.id}
+              />
 
 
             {/* 채널 건강 점수 + 레이더 차트 */}

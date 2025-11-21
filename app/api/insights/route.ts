@@ -8,69 +8,157 @@ const openai = new OpenAI({
 
 export async function POST(request: NextRequest) {
   try {
-    const { accessToken, channelId } = await request.json();
+    const { accessToken, channelId, cachedData } = await request.json();
 
-    if (!accessToken || !channelId) {
+    if (!channelId) {
       return NextResponse.json(
-        { error: 'accessToken과 channelId가 필요합니다.' },
+        { error: 'channelId가 필요합니다.' },
         { status: 400 }
       );
     }
 
-    const youtubeAPI = new YouTubeAPI(accessToken);
-
-    // 채널 정보 가져오기
-    const channel = await youtubeAPI.getChannelInfo(channelId);
-    
-    // 최근 30일 비디오 가져오기
-    const videos = await youtubeAPI.getVideos(channelId, 10);
-    
-    // 최근 30일 분석 데이터 가져오기
     const endDate = new Date().toISOString().split('T')[0];
     const startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-    const analytics = await youtubeAPI.getChannelAnalytics(channelId, startDate, endDate);
 
-    // 상위 3개 비디오 분석
-    const topVideos = videos.slice(0, 3);
-    const videoAnalyticsMap = await youtubeAPI.getMultipleVideoAnalytics(
-      topVideos.map(v => v.id),
-      startDate,
-      endDate
-    );
+    let channelSummary;
 
-    // 평균 조회수 계산
-    const avgViews = videos.length > 0
-      ? videos.reduce((sum, v) => sum + parseInt(v.statistics.viewCount || '0'), 0) / videos.length
-      : 0;
+    // 캐시된 데이터가 있으면 우선 사용 (할당량 초과 시 대응)
+    if (cachedData) {
+      console.log('캐시된 데이터를 사용하여 인사이트 생성');
+      const { channel, videos, analytics, videoAnalyticsMap } = cachedData;
 
-    // 평균 좋아요 계산
-    const avgLikes = videos.length > 0
-      ? videos.reduce((sum, v) => sum + parseInt(v.statistics.likeCount || '0'), 0) / videos.length
-      : 0;
+      // videoAnalyticsMap이 객체로 전달되므로 Map으로 변환
+      const videoAnalyticsMapObj = videoAnalyticsMap as Record<string, { averageViewDuration: string }> || {};
 
-    // 채널 데이터 요약
-    const channelSummary = {
-      channelName: channel.title,
-      subscriberCount: parseInt(channel.statistics.subscriberCount || '0'),
-      totalVideos: parseInt(channel.statistics.videoCount || '0'),
-      recent30Days: {
-        views: analytics.views,
-        avgWatchDuration: analytics.averageViewDuration,
-        subscribersGained: analytics.subscribersGained,
-      },
-      topVideos: topVideos.map(video => {
-        const videoAnalytics = videoAnalyticsMap.get(video.id);
-        return {
-          title: video.title,
-          views: parseInt(video.statistics.viewCount || '0'),
-          likes: parseInt(video.statistics.likeCount || '0'),
-          avgWatchDuration: videoAnalytics?.averageViewDuration || '0:00',
-          publishedAt: video.publishedAt,
+      // 상위 3개 비디오 선택
+      const topVideos = [...videos]
+        .filter((video: any) => video.status?.privacyStatus === 'public')
+        .sort((a: any, b: any) => {
+          const viewsA = parseInt(a.statistics?.viewCount || '0', 10);
+          const viewsB = parseInt(b.statistics?.viewCount || '0', 10);
+          return viewsB - viewsA;
+        })
+        .slice(0, 3);
+
+      // 평균 조회수 계산
+      const avgViews = videos.length > 0
+        ? videos.reduce((sum: number, v: any) => sum + parseInt(v.statistics?.viewCount || '0'), 0) / videos.length
+        : 0;
+
+      // 평균 좋아요 계산
+      const avgLikes = videos.length > 0
+        ? videos.reduce((sum: number, v: any) => sum + parseInt(v.statistics?.likeCount || '0'), 0) / videos.length
+        : 0;
+
+      channelSummary = {
+        channelName: channel?.title || '알 수 없음',
+        subscriberCount: parseInt(channel?.statistics?.subscriberCount || '0'),
+        totalVideos: parseInt(channel?.statistics?.videoCount || '0'),
+        recent30Days: {
+          views: analytics?.views || 0,
+          avgWatchDuration: analytics?.averageViewDuration || '0:00',
+          subscribersGained: analytics?.subscribersGained || 0,
+        },
+        topVideos: topVideos.map((video: any) => {
+          const videoAnalytics = videoAnalyticsMapObj[video.id];
+          return {
+            title: video.title || '제목 없음',
+            views: parseInt(video.statistics?.viewCount || '0'),
+            likes: parseInt(video.statistics?.likeCount || '0'),
+            avgWatchDuration: videoAnalytics?.averageViewDuration || '0:00',
+            publishedAt: video.publishedAt || '',
+          };
+        }),
+        averageViews: Math.round(avgViews),
+        averageLikes: Math.round(avgLikes),
+      };
+    } else {
+      // 캐시된 데이터가 없으면 YouTube API 호출
+      if (!accessToken) {
+        return NextResponse.json(
+          { error: 'accessToken 또는 cachedData가 필요합니다.' },
+          { status: 400 }
+        );
+      }
+
+      const youtubeAPI = new YouTubeAPI(accessToken);
+
+      try {
+        // 채널 정보 가져오기
+        const channel = await youtubeAPI.getChannelInfo(channelId);
+        
+        // 최근 30일 비디오 가져오기
+        const videos = await youtubeAPI.getVideos(channelId, 10);
+        
+        // 최근 30일 분석 데이터 가져오기
+        const analytics = await youtubeAPI.getChannelAnalytics(channelId, startDate, endDate);
+
+        // 상위 3개 비디오 분석
+        const topVideos = videos.slice(0, 3);
+        const videoAnalyticsMap = await youtubeAPI.getMultipleVideoAnalytics(
+          topVideos.map(v => v.id),
+          startDate,
+          endDate
+        );
+
+        // 평균 조회수 계산
+        const avgViews = videos.length > 0
+          ? videos.reduce((sum, v) => sum + parseInt(v.statistics.viewCount || '0'), 0) / videos.length
+          : 0;
+
+        // 평균 좋아요 계산
+        const avgLikes = videos.length > 0
+          ? videos.reduce((sum, v) => sum + parseInt(v.statistics.likeCount || '0'), 0) / videos.length
+          : 0;
+
+        channelSummary = {
+          channelName: channel.title,
+          subscriberCount: parseInt(channel.statistics.subscriberCount || '0'),
+          totalVideos: parseInt(channel.statistics.videoCount || '0'),
+          recent30Days: {
+            views: analytics.views,
+            avgWatchDuration: analytics.averageViewDuration,
+            subscribersGained: analytics.subscribersGained,
+          },
+          topVideos: topVideos.map(video => {
+            const videoAnalytics = videoAnalyticsMap.get(video.id);
+            return {
+              title: video.title,
+              views: parseInt(video.statistics.viewCount || '0'),
+              likes: parseInt(video.statistics.likeCount || '0'),
+              avgWatchDuration: videoAnalytics?.averageViewDuration || '0:00',
+              publishedAt: video.publishedAt,
+            };
+          }),
+          averageViews: Math.round(avgViews),
+          averageLikes: Math.round(avgLikes),
         };
-      }),
-      averageViews: Math.round(avgViews),
-      averageLikes: Math.round(avgLikes),
-    };
+      } catch (apiError: any) {
+        // YouTube API 호출 실패 시 (할당량 초과 등)
+        console.error('YouTube API 호출 실패, 캐시된 데이터 사용 시도:', apiError);
+        
+        // 에러 메시지에 할당량 초과가 포함되어 있으면 캐시 사용 안내
+        if (apiError?.message?.includes('quota') || apiError?.message?.includes('할당량')) {
+          return NextResponse.json(
+            { 
+              error: 'YouTube API 할당량이 초과되었습니다. 클라이언트에서 캐시된 데이터를 전달해주세요.',
+              requiresCachedData: true
+            },
+            { status: 429 }
+          );
+        }
+        
+        throw apiError;
+      }
+    }
+
+    // channelSummary가 설정되지 않았으면 에러
+    if (!channelSummary) {
+      return NextResponse.json(
+        { error: '채널 데이터를 가져올 수 없습니다.' },
+        { status: 500 }
+      );
+    }
 
     // OpenAI로 인사이트 생성
     const completion = await openai.chat.completions.create({
