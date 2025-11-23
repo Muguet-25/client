@@ -94,7 +94,12 @@ function VideoAnalysisDetail({ video, onBack }: { video: YouTubeVideo; onBack: (
   const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(false);
   const [avgTitleLength, setAvgTitleLength] = useState(0);
   const [optimalUploadHour, setOptimalUploadHour] = useState(18);
-  const [videoInsights, setVideoInsights] = useState<{ issues: Array<{ title: string; description: string; severity: string }>; causes: string[] } | null>(null);
+  const [videoInsights, setVideoInsights] = useState<{ 
+    issues: Array<{ title: string; description: string; severity: string }>; 
+    causes: string[];
+    retentionAnalysis?: string;
+    engagementAnalysis?: string;
+  } | null>(null);
   const [isLoadingInsights, setIsLoadingInsights] = useState(false);
 
   // 비디오 Analytics 데이터 가져오기
@@ -220,12 +225,19 @@ function VideoAnalysisDetail({ video, onBack }: { video: YouTubeVideo; onBack: (
         const totalLikes = publicVideos.reduce((sum, v) => sum + parseInt(v.statistics?.likeCount || '0'), 0);
         const totalComments = publicVideos.reduce((sum, v) => sum + parseInt(v.statistics?.commentCount || '0'), 0);
         const avgEngagement = totalViews > 0 ? ((totalLikes + totalComments) / totalViews) * 100 : 0;
+        
+        // 채널 평균 조회수 계산
+        const channelAvgViews = publicVideos.length > 0 ? totalViews / publicVideos.length : 0;
 
         // 현재 비디오 참여도
         const views = parseInt(video.statistics?.viewCount || '0');
         const likes = parseInt(video.statistics?.likeCount || '0');
         const comments = parseInt(video.statistics?.commentCount || '0');
         const engagement = views > 0 ? ((likes + comments) / views) * 100 : 0;
+
+        // 좋아요/댓글 전환률 계산
+        const likeRate = views > 0 ? (likes / views) * 100 : 0;
+        const commentRate = views > 0 ? (comments / views) * 100 : 0;
 
         const response = await fetch('/api/video-insights', {
           method: 'POST',
@@ -248,6 +260,9 @@ function VideoAnalysisDetail({ video, onBack }: { video: YouTubeVideo; onBack: (
               views: views,
               likes: likes,
               comments: comments,
+              likeRate: likeRate,
+              commentRate: commentRate,
+              channelAvgViews: channelAvgViews,
             },
           }),
         });
@@ -424,12 +439,15 @@ function VideoAnalysisDetail({ video, onBack }: { video: YouTubeVideo; onBack: (
             </p>
           </div>
           <div className="flex-1 flex gap-4 items-center ml-4">
-            <p className="text-base text-[#e2e2e4] leading-[18px]">
-              "영상 길이의 {watchRetentionRate}% 지점까지 평균적으로 시청했습니다."
-            </p>
-            <p className="text-base text-[#e2e2e4] leading-[18px]">
-              "{watchRetentionRate < 30 ? '초반 이탈이 심각합니다. 영상 도입부에 문제가 있을 수 있습니다.' : '시청 지속률이 양호합니다.'}"
-            </p>
+            {isLoadingInsights ? (
+              <p className="text-base text-[#e2e2e4] leading-[18px]">분석 중...</p>
+            ) : (
+              <p className="text-base text-[#e2e2e4] leading-[18px]">
+                "{videoInsights?.retentionAnalysis || (watchRetentionRate < 30
+                  ? `조회수 ${views.toLocaleString()}, 채널 조회수 대비로 시청 지속률이 ${watchRetentionRate}%로 낮아 초반 이탈이 심각합니다. 영상 도입부에 문제가 있을 수 있습니다.`
+                  : `조회수 ${views.toLocaleString()}, 채널 조회수 대비로 시청 지속률이 ${watchRetentionRate}%로 양호합니다.`)}"
+              </p>
+            )}
           </div>
         </div>
 
@@ -450,12 +468,19 @@ function VideoAnalysisDetail({ video, onBack }: { video: YouTubeVideo; onBack: (
             </div>
           </div>
           <div className="flex-1 flex gap-4 items-center ml-4">
-            <p className="text-base text-[#e2e2e4] leading-[18px]">
-              "{likeRate < 5 ? '영상은 많이 봤지만, 공감을 얻지 못했습니다. (타겟층 불일치 가능성)' : '좋아요 전환률이 양호합니다.'}"
-            </p>
-            <p className="text-base text-[#e2e2e4] leading-[18px]">
-              "{commentRate < 2 ? '댓글 참여율이 아주 저조합니다. 댓글 유도를 고민해보세요.' : '댓글 참여율이 양호합니다.'}"
-            </p>
+            {isLoadingInsights ? (
+              <p className="text-base text-[#e2e2e4] leading-[18px]">분석 중...</p>
+            ) : (
+              <p className="text-base text-[#e2e2e4] leading-[18px]">
+                "{videoInsights?.engagementAnalysis || (likeRate < 5 && commentRate < 2 
+                  ? `조회수 ${views.toLocaleString()}, 좋아요 ${likes.toLocaleString()}, 댓글 ${comments.toLocaleString()}, 채널 조회수 대비로 좋아요와 댓글 수가 모두 적어 시청자 참여도가 저조합니다.`
+                  : likeRate < 5
+                  ? `조회수 ${views.toLocaleString()}, 좋아요 ${likes.toLocaleString()}, 댓글 ${comments.toLocaleString()}, 채널 조회수 대비로 좋아요 수가 적어 시청자들의 공감을 얻지 못하고 있습니다.`
+                  : commentRate < 2
+                  ? `조회수 ${views.toLocaleString()}, 좋아요 ${likes.toLocaleString()}, 댓글 ${comments.toLocaleString()}, 채널 조회수 대비로 댓글 수가 적어 댓글 유도가 필요합니다.`
+                  : `조회수 ${views.toLocaleString()}, 좋아요 ${likes.toLocaleString()}, 댓글 ${comments.toLocaleString()}, 채널 조회수 대비로 좋아요와 댓글 수가 양호합니다.`)}"
+              </p>
+            )}
           </div>
         </div>
 

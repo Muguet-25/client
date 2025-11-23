@@ -35,6 +35,9 @@ export async function POST(request: NextRequest) {
       views = 0,
       likes = 0,
       comments = 0,
+      likeRate = 0,
+      commentRate = 0,
+      channelAvgViews = 0,
     } = metrics;
 
     const prompt = `
@@ -51,6 +54,8 @@ export async function POST(request: NextRequest) {
 - 조회수: ${views.toLocaleString()}
 - 좋아요: ${likes.toLocaleString()}
 - 댓글: ${comments.toLocaleString()}
+- 좋아요 전환률: ${likeRate.toFixed(2)}%
+- 댓글 전환률: ${commentRate.toFixed(2)}%
 
 위 데이터를 기반으로 JSON 형태로 분석 결과를 작성하세요:
 {
@@ -64,11 +69,15 @@ export async function POST(request: NextRequest) {
   "causes": [
     "문제 원인 1",
     "문제 원인 2"
-  ]
+  ],
+  "retentionAnalysis": "시청 지속률에 대한 1문장 분석. 반드시 '조회수 ${views.toLocaleString()}, 채널 조회수 대비로 ~~' 형식으로 시작하며, 실제 시청 지속률(${retentionRate.toFixed(1)}%)을 언급하고 채널 평균과 비교한 평가를 제시하세요.",
+  "engagementAnalysis": "좋아요와 댓글에 대한 통합 1문장 분석. 반드시 '조회수 ${views.toLocaleString()}, 좋아요 ${likes.toLocaleString()}, 댓글 ${comments.toLocaleString()}, 채널 조회수 대비로 ~~' 형식으로 시작하며, 실제 수치를 언급하고 채널 평균과 비교한 평가를 제시하세요."
 }
 
 - 최소 2개의 issue를 제시하고, 각 severity는 high/medium/low 중 하나로만 설정하세요.
 - causes는 2~3개 문장으로, 실행 가능한 원인 분석만 작성하세요.
+- retentionAnalysis는 1문장으로 작성하세요. 반드시 "조회수 ${views.toLocaleString()}, 채널 조회수 대비로 ~~" 형식으로 시작하며, 시청 지속률(${retentionRate.toFixed(1)}%)을 언급하고 채널 평균과 비교한 평가를 제시하세요.
+- engagementAnalysis는 1문장으로 작성하세요. 반드시 "조회수 ${views.toLocaleString()}, 좋아요 ${likes.toLocaleString()}, 댓글 ${comments.toLocaleString()}, 채널 조회수 대비로 ~~" 형식으로 시작하며, 좋아요 수와 댓글 수를 언급하고, 채널 평균 참여도(${avgEngagement.toFixed(2)}%)와 비교한 평가를 제시하세요. "전환률"이라는 단어는 사용하지 마세요. 예: "조회수 ${views.toLocaleString()}, 좋아요 ${likes.toLocaleString()}, 댓글 ${comments.toLocaleString()}, 채널 조회수 대비로 좋아요 수가 적어 시청자들의 공감을 얻지 못하고 있습니다."
 - JSON 외의 텍스트, 마크다운, 설명은 출력하지 마세요.
 `;
 
@@ -107,6 +116,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({
       issues: insights.issues || [],
       causes: insights.causes || [],
+      retentionAnalysis: insights.retentionAnalysis || '',
+      engagementAnalysis: insights.engagementAnalysis || '',
     });
   } catch (error) {
     console.error('영상 AI 인사이트 생성 실패:', error);

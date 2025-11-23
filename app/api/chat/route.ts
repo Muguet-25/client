@@ -23,7 +23,7 @@ const openai = new OpenAI({
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { conversationId, message, userId, accessToken } = body;
+    const { conversationId, message, userId, accessToken, channelContext } = body;
 
     if (!message || !userId) {
       return NextResponse.json(
@@ -112,41 +112,77 @@ export async function POST(request: NextRequest) {
     }));
 
     // 사용자의 채널 데이터 가져오기
-    let channelContext = '';
-    try {
-      const token = accessToken || request.headers.get('x-youtube-token');
+    let channelContextString = '';
+    
+    // 클라이언트에서 미리 준비된 채널 정보가 있으면 사용
+    if (channelContext && channelContext.channel) {
+      const { channel: ch, videos: vs, analytics: analyticsData } = channelContext;
+      
+      channelContextString = `
+사용자의 채널 데이터:
+- 채널명: ${ch.title || '알 수 없음'}
+- 구독자 수: ${parseInt(
+        ch.statistics?.subscriberCount || '0'
+      ).toLocaleString()}명
+- 총 영상 수: ${ch.statistics?.videoCount || 0}개
+${analyticsData ? `
+- 최근 30일 조회수: ${analyticsData.views?.toLocaleString() || 0}
+- 최근 30일 평균 시청 지속시간: ${analyticsData.averageViewDuration || '0:00'}
+- 최근 30일 구독자 증가: ${analyticsData.subscribersGained || 0}명` : ''}
 
-      if (token) {
-        const { YouTubeAPI } = await import('@/lib/youtube/api');
-        const youtubeAPI = new YouTubeAPI(token);
+최근 영상 ${vs.length}개:
+${vs
+  .map(
+    (v, i) => `
+${i + 1}. ${v.title || '제목 없음'}
+   - 조회수: ${parseInt(
+     v.statistics?.viewCount || '0'
+   ).toLocaleString()}
+   - 좋아요: ${parseInt(
+     v.statistics?.likeCount || '0'
+   ).toLocaleString()}
+   - 업로드일: ${v.publishedAt ? new Date(
+     v.publishedAt
+   ).toLocaleDateString('ko-KR') : '알 수 없음'}`
+  )
+  .join('')}
+`;
+    } else {
+      // 클라이언트에서 정보가 없으면 서버에서 가져오기 (기존 방식)
+      try {
+        const token = accessToken || request.headers.get('x-youtube-token');
 
-        try {
-          const channel = await youtubeAPI.getChannelInfo();
-          const videos = await youtubeAPI.getVideos(undefined, 5);
+        if (token) {
+          const { YouTubeAPI } = await import('@/lib/youtube/api');
+          const youtubeAPI = new YouTubeAPI(token);
 
-          const endDate = new Date().toISOString().split('T')[0];
-          const startDate = new Date(
-            Date.now() - 30 * 24 * 60 * 60 * 1000
-          )
-            .toISOString()
-            .split('T')[0];
-          const analytics = await youtubeAPI.getChannelAnalytics(
-            channel.id,
-            startDate,
-            endDate
-          );
+          try {
+            const channel = await youtubeAPI.getChannelInfo();
+            const videos = await youtubeAPI.getVideos(undefined, 5);
 
-          channelContext = `
+            const endDate = new Date().toISOString().split('T')[0];
+            const startDate = new Date(
+              Date.now() - 30 * 24 * 60 * 60 * 1000
+            )
+              .toISOString()
+              .split('T')[0];
+            const analytics = await youtubeAPI.getChannelAnalytics(
+              channel.id,
+              startDate,
+              endDate
+            );
+
+            channelContextString = `
 사용자의 채널 데이터:
 - 채널명: ${channel.title}
 - 구독자 수: ${parseInt(
-            channel.statistics.subscriberCount || '0'
-          ).toLocaleString()}명
+              channel.statistics.subscriberCount || '0'
+            ).toLocaleString()}명
 - 총 영상 수: ${channel.statistics.videoCount}개
 - 최근 30일 조회수: ${analytics.views.toLocaleString()}
 - 최근 30일 평균 시청 지속시간: ${
-            analytics.averageViewDuration
-          }
+              analytics.averageViewDuration
+            }
 - 최근 30일 구독자 증가: ${analytics.subscribersGained}명
 
 최근 영상 5개:
@@ -166,18 +202,19 @@ ${i + 1}. ${v.title}
   )
   .join('')}
 `;
-        } catch (error) {
-          console.error('채널 데이터 가져오기 실패:', error);
+          } catch (error) {
+            console.error('채널 데이터 가져오기 실패:', error);
+          }
         }
+      } catch (error) {
+        console.error('채널 데이터 처리 오류:', error);
       }
-    } catch (error) {
-      console.error('채널 데이터 처리 오류:', error);
     }
 
     const systemPrompt = `당신은 사용자의 유튜브 채널 데이터를 기반으로 맞춤형 조언을 제공하는 AI 코치입니다. 
 
 ${
-  channelContext
+  channelContextString
     ? `현재 사용자의 채널 데이터가 제공되었습니다. 이 데이터를 기반으로 개인화된 조언을 제공하세요.`
     : '채널 데이터가 제공되지 않았습니다. 일반적인 유튜브 전략과 최신 트렌드를 바탕으로 조언을 제공하세요.'
 }
@@ -197,7 +234,7 @@ ${
 - 실행 가능한 구체적 액션 위주로 답변
 - 유튜버가 실제로 쓰는 방식처럼 자연스럽고 실용적인 설명
 ${
-  channelContext
+  channelContextString
     ? '- 제공된 채널 데이터의 구체적인 숫자와 통계를 활용하여 답변하세요.'
     : ''
 }`;
@@ -207,7 +244,10 @@ ${
       model: 'gpt-4o-mini',
       stream: true,
       messages: [
-        { role: 'system', content: systemPrompt },
+        { 
+          role: 'system', 
+          content: systemPrompt + (channelContextString ? `\n\n${channelContextString}` : '')
+        },
         ...messages,
       ],
       temperature: 0.7,

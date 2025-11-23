@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react';
 import { useAuthStore } from '@/lib/useAuthStore';
+import { useYouTube } from '@/hooks/useYouTube';
 
 interface Message {
   id: string;
@@ -10,16 +11,76 @@ interface Message {
   created_at?: string;
 }
 
+interface ChannelContext {
+  channel: any;
+  videos: any[];
+  analytics: any;
+}
+
 export default function Chatbot() {
   const { user } = useAuthStore();
+  const { isConnected, channel, videos, analytics, refreshChannel, refreshVideos, refreshAnalytics } = useYouTube();
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [conversationId, setConversationId] = useState<string | null>(null);
+  const [channelContext, setChannelContext] = useState<ChannelContext | null>(null);
+  const [isLoadingContext, setIsLoadingContext] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   const lastMessage = messages[messages.length - 1];
+
+  // 컴포넌트 마운트 시 채널 정보 미리 가져오기
+  useEffect(() => {
+    const loadChannelContext = async () => {
+      if (!isConnected) return;
+      
+      setIsLoadingContext(true);
+      try {
+        const accessToken = localStorage.getItem('youtube_access_token');
+        if (!accessToken) {
+          setIsLoadingContext(false);
+          return;
+        }
+
+        // 채널 정보가 없으면 가져오기
+        if (!channel) {
+          await refreshChannel();
+        }
+        
+        // 비디오 목록이 없으면 가져오기
+        if (videos.length === 0) {
+          await refreshVideos();
+        }
+
+        // Analytics 정보 가져오기
+        if (channel) {
+          const endDate = new Date().toISOString().split('T')[0];
+          const startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+          await refreshAnalytics(startDate, endDate);
+        }
+      } catch (error) {
+        console.error('채널 정보 로드 실패:', error);
+      } finally {
+        setIsLoadingContext(false);
+      }
+    };
+
+    loadChannelContext();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isConnected]);
+
+  // 채널 정보가 준비되면 context에 저장
+  useEffect(() => {
+    if (channel && videos.length > 0) {
+      setChannelContext({
+        channel,
+        videos: videos.slice(0, 5), // 최근 5개만
+        analytics, // analytics 정보도 포함
+      });
+    }
+  }, [channel, videos, analytics]);
 
   
 
@@ -43,6 +104,24 @@ export default function Chatbot() {
     try {
       const accessToken = localStorage.getItem('youtube_access_token');
 
+      // 채널 컨텍스트 정보 준비
+      const contextData = channelContext ? {
+        channel: {
+          title: channelContext.channel?.title,
+          statistics: channelContext.channel?.statistics,
+        },
+        videos: channelContext.videos.map(v => ({
+          title: v.title,
+          statistics: v.statistics,
+          publishedAt: v.publishedAt,
+        })),
+        analytics: channelContext.analytics ? {
+          views: channelContext.analytics.views,
+          averageViewDuration: channelContext.analytics.averageViewDuration,
+          subscribersGained: channelContext.analytics.subscribersGained,
+        } : null,
+      } : null;
+
       const response = await fetch('/api/chat', {
         method: 'POST',
         headers: {
@@ -53,6 +132,7 @@ export default function Chatbot() {
           message: content,
           userId: user.id,
           accessToken: accessToken || undefined,
+          channelContext: contextData, // 미리 준비된 채널 정보 전달
         }),
       });
 
