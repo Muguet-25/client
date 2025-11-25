@@ -28,7 +28,7 @@ export async function POST(request: NextRequest) {
       const { channel, videos, analytics, videoAnalyticsMap } = cachedData;
 
       // videoAnalyticsMap이 객체로 전달되므로 Map으로 변환
-      const videoAnalyticsMapObj = videoAnalyticsMap as Record<string, { averageViewDuration: string }> || {};
+      const videoAnalyticsMapObj = videoAnalyticsMap as Record<string, { averageViewDuration: number }> || {};
 
       // 상위 3개 비디오 선택
       const topVideos = [...videos]
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
         totalVideos: parseInt(channel?.statistics?.videoCount || '0'),
         recent30Days: {
           views: analytics?.views || 0,
-          avgWatchDuration: analytics?.averageViewDuration || '0:00',
+          avgWatchDuration: analytics?.averageViewDuration ? `${Math.floor(analytics.averageViewDuration / 60)}분 ${analytics.averageViewDuration % 60}초` : '0초',
           subscribersGained: analytics?.subscribersGained || 0,
         },
         topVideos: topVideos.map((video: any) => {
@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
             title: video.title || '제목 없음',
             views: parseInt(video.statistics?.viewCount || '0'),
             likes: parseInt(video.statistics?.likeCount || '0'),
-            avgWatchDuration: videoAnalytics?.averageViewDuration || '0:00',
+            avgWatchDuration: videoAnalytics?.averageViewDuration ? `${Math.floor(videoAnalytics.averageViewDuration / 60)}분 ${videoAnalytics.averageViewDuration % 60}초` : '0초',
             publishedAt: video.publishedAt || '',
           };
         }),
@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
           totalVideos: parseInt(channel.statistics.videoCount || '0'),
           recent30Days: {
             views: analytics.views,
-            avgWatchDuration: analytics.averageViewDuration,
+            avgWatchDuration: analytics.averageViewDuration ? `${Math.floor(analytics.averageViewDuration / 60)}분 ${analytics.averageViewDuration % 60}초` : '0초',
             subscribersGained: analytics.subscribersGained,
           },
           topVideos: topVideos.map(video => {
@@ -126,7 +126,7 @@ export async function POST(request: NextRequest) {
               title: video.title,
               views: parseInt(video.statistics.viewCount || '0'),
               likes: parseInt(video.statistics.likeCount || '0'),
-              avgWatchDuration: videoAnalytics?.averageViewDuration || '0:00',
+              avgWatchDuration: videoAnalytics?.averageViewDuration ? `${Math.floor(videoAnalytics.averageViewDuration / 60)}분 ${videoAnalytics.averageViewDuration % 60}초` : '0초',
               publishedAt: video.publishedAt,
             };
           }),

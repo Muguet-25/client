@@ -6,7 +6,7 @@ import { YouTubeVideo } from '@/lib/youtube/types';
 interface VideoSuccessFactorsProps {
   video: YouTubeVideo;
   videoAnalytics?: {
-    averageViewDuration: string;
+    averageViewDuration: string | number;
   };
   channelAvgWatchDuration?: string;
   avgViews?: number;
@@ -19,7 +19,10 @@ export default function VideoSuccessFactors({
   avgViews = 0
 }: VideoSuccessFactorsProps) {
   // ISO 8601 duration을 초로 변환 (useMemo 이전에 선언)
-  const parseDurationToSeconds = (duration: string): number => {
+  const parseDurationToSeconds = (duration: string | number): number => {
+    if (typeof duration === 'number') {
+      return duration;
+    }
     // ISO 8601 형식 (PT1H2M3S) 또는 MM:SS 형식 모두 지원
     if (duration.includes('PT')) {
       const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);

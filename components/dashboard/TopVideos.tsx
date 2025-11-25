@@ -18,7 +18,7 @@ interface TopVideosProps {
   videos: TopVideoItem[];
   isLoading?: boolean;
   fullVideos?: YouTubeVideo[]; // 전체 비디오 데이터 (성공 요인 분석용)
-  videoAnalyticsMap?: Map<string, { averageViewDuration: string }>; // 비디오 Analytics 데이터
+  videoAnalyticsMap?: Map<string, { averageViewDuration: string | number }>; // 비디오 Analytics 데이터
   avgViews?: number; // 평균 조회수
 }
 

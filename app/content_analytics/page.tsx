@@ -6,7 +6,7 @@ import Sidebar from '@/components/dashboard/Sidebar';
 import { useStore } from '@/lib/store';
 import { useYouTube } from '@/hooks/useYouTube';
 import { YouTubeVideo } from '@/lib/youtube/types';
-import { AlertTriangle, Lightbulb, ArrowLeft, UserPlus, ThumbsUp, Eye, TrendingUp, MessageCircle } from 'lucide-react';
+import { AlertTriangle, Lightbulb, ArrowLeft, UserPlus, ThumbsUp, ThumbsDown, Eye, TrendingUp, MessageCircle } from 'lucide-react';
 import VideoHealthReport from '@/components/report/VideoHealthReport';
 import ActionPlan from '@/components/report/ActionPlan';
 
@@ -89,25 +89,27 @@ function VideoItem({ video, onAnalyze }: VideoItemProps) {
 // 영상 분석 상세 컴포넌트
 function VideoAnalysisDetail({ video, onBack }: { video: YouTubeVideo; onBack: () => void }) {
   const { isConnected, channel, videos } = useYouTube();
-  const [videoAnalytics, setVideoAnalytics] = useState<any>(null);
+  
+  // 목 데이터로 초기화
+  const mockVideoAnalytics = {
+    averageViewDuration: 150, // 2분 30초
+    averageViewPercentage: 65,
+  };
+  
   const [channelSubscribersGained, setChannelSubscribersGained] = useState(0);
-  const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(false);
   const [avgTitleLength, setAvgTitleLength] = useState(0);
   const [optimalUploadHour, setOptimalUploadHour] = useState(18);
-  const [videoInsights, setVideoInsights] = useState<{ 
-    issues: Array<{ title: string; description: string; severity: string }>; 
-    causes: string[];
-    retentionAnalysis?: string;
-    engagementAnalysis?: string;
-  } | null>(null);
-  const [isLoadingInsights, setIsLoadingInsights] = useState(false);
+  const [latestComment, setLatestComment] = useState<{ text: string; author: string; publishedAt: string } | null>(null);
+  const [engagementAnalysis, setEngagementAnalysis] = useState<string>('');
+  const [detailedAnalysis, setDetailedAnalysis] = useState<string>('');
+  const [isLoadingComment, setIsLoadingComment] = useState(false);
 
-  // 비디오 Analytics 데이터 가져오기
+  // 최신 댓글 가져오기 및 AI 분석
   useEffect(() => {
-    const fetchAnalytics = async () => {
+    const fetchCommentAndAnalysis = async () => {
       if (!isConnected || !channel) return;
 
-      setIsLoadingAnalytics(true);
+      setIsLoadingComment(true);
       try {
         const accessToken = localStorage.getItem('youtube_access_token');
         if (!accessToken) return;
@@ -115,92 +117,11 @@ function VideoAnalysisDetail({ video, onBack }: { video: YouTubeVideo; onBack: (
         const { YouTubeAPI } = await import('@/lib/youtube/api');
         const youtubeAPI = new YouTubeAPI(accessToken);
 
-        // 비디오 분석 데이터
-        const endDate = new Date().toISOString().split('T')[0];
-        const publishedDate = new Date(video.publishedAt);
-        const startDate = publishedDate.toISOString().split('T')[0];
-        const analytics = await youtubeAPI.getVideoAnalytics(video.id, startDate, endDate);
-        setVideoAnalytics(analytics);
+        // 최신 댓글 1개 가져오기
+        const comment = await youtubeAPI.getLatestComment(video.id);
+        setLatestComment(comment);
 
-        // 채널 Analytics에서 구독자 증가 가져오기
-        const channelEndDate = new Date().toISOString().split('T')[0];
-        const channelStartDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-        const channelAnalytics = await youtubeAPI.getChannelAnalytics(channel.id, channelStartDate, channelEndDate);
-        // 비디오별 구독자 증가는 추정 (채널 전체 증가 / 비디오 수)
-        const estimatedSubGain = videos.length > 0 ? Math.round(channelAnalytics.subscribersGained / videos.length) : 0;
-        setChannelSubscribersGained(estimatedSubGain);
-
-        // 평균 제목 길이 계산 (최근 30일 공개 영상)
-        const recentVideos = videos.filter(v => {
-          const pubDate = new Date(v.publishedAt);
-          const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
-          return pubDate >= thirtyDaysAgo && v.status?.privacyStatus === 'public';
-        });
-        
-        if (recentVideos.length > 0) {
-          const totalTitleLength = recentVideos.reduce((sum, v) => sum + (v.title?.length || 0), 0);
-          const avgLength = Math.round(totalTitleLength / recentVideos.length);
-          setAvgTitleLength(avgLength);
-        } else if (videos.length > 0) {
-          // 최근 30일 데이터가 없으면 전체 영상으로 계산
-          const publicVideos = videos.filter(v => v.status?.privacyStatus === 'public');
-          if (publicVideos.length > 0) {
-            const totalTitleLength = publicVideos.reduce((sum, v) => sum + (v.title?.length || 0), 0);
-            const avgLength = Math.round(totalTitleLength / publicVideos.length);
-            setAvgTitleLength(avgLength);
-          }
-        }
-
-        // 최적 업로드 시간 계산 (최근 성과 좋은 영상들의 평균 업로드 시간)
-        const publicVideos = videos.filter(v => v.status?.privacyStatus === 'public');
-        if (publicVideos.length > 0) {
-          // 조회수 기준 상위 30% 영상들의 업로드 시간 분석
-          const sortedVideos = [...publicVideos].sort((a, b) => {
-            const viewsA = parseInt(a.statistics?.viewCount || '0');
-            const viewsB = parseInt(b.statistics?.viewCount || '0');
-            return viewsB - viewsA;
-          });
-          
-          const top30Percent = Math.max(1, Math.ceil(sortedVideos.length * 0.3));
-          const topVideos = sortedVideos.slice(0, top30Percent);
-          
-          const uploadHours = topVideos.map(v => {
-            const pubDate = new Date(v.publishedAt);
-            return pubDate.getHours();
-          });
-          
-          if (uploadHours.length > 0) {
-            // 가장 많이 나타나는 시간대 찾기
-            const hourCounts: Record<number, number> = {};
-            uploadHours.forEach(hour => {
-              hourCounts[hour] = (hourCounts[hour] || 0) + 1;
-            });
-            
-            const mostFrequentHour = Object.entries(hourCounts).reduce((a, b) => 
-              hourCounts[parseInt(a[0])] > hourCounts[parseInt(b[0])] ? a : b
-            )[0];
-            
-            setOptimalUploadHour(parseInt(mostFrequentHour));
-          }
-        }
-      } catch (error) {
-        console.error('Analytics 가져오기 실패:', error);
-      } finally {
-        setIsLoadingAnalytics(false);
-      }
-    };
-
-    fetchAnalytics();
-  }, [isConnected, channel, video.id, videos]);
-
-  // AI 기반 비디오 인사이트 가져오기
-  useEffect(() => {
-    const fetchVideoInsights = async () => {
-      if (!videoAnalytics || !video) return;
-
-      setIsLoadingInsights(true);
-      try {
-        // 평균 시청 지속시간을 초로 변환
+        // 영상 길이를 초로 변환
         const parseDurationToSeconds = (duration: string): number => {
           if (duration.includes('PT')) {
             const match = duration.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
@@ -214,76 +135,61 @@ function VideoAnalysisDetail({ video, onBack }: { video: YouTubeVideo; onBack: (
         };
 
         const videoDurationSeconds = parseDurationToSeconds(video.duration || 'PT0S');
-        const avgWatchDurationSeconds = parseDurationToSeconds(videoAnalytics.averageViewDuration || 'PT0S');
-        const watchRetentionRate = videoDurationSeconds > 0 
-          ? (avgWatchDurationSeconds / videoDurationSeconds) * 100
-          : 0;
 
-        // 채널 평균 참여도 계산
-        const publicVideos = videos.filter(v => v.status?.privacyStatus === 'public');
-        const totalViews = publicVideos.reduce((sum, v) => sum + parseInt(v.statistics?.viewCount || '0'), 0);
-        const totalLikes = publicVideos.reduce((sum, v) => sum + parseInt(v.statistics?.likeCount || '0'), 0);
-        const totalComments = publicVideos.reduce((sum, v) => sum + parseInt(v.statistics?.commentCount || '0'), 0);
-        const avgEngagement = totalViews > 0 ? ((totalLikes + totalComments) / totalViews) * 100 : 0;
-        
-        // 채널 평균 조회수 계산
-        const channelAvgViews = publicVideos.length > 0 ? totalViews / publicVideos.length : 0;
-
-        // 현재 비디오 참여도
-        const views = parseInt(video.statistics?.viewCount || '0');
-        const likes = parseInt(video.statistics?.likeCount || '0');
-        const comments = parseInt(video.statistics?.commentCount || '0');
-        const engagement = views > 0 ? ((likes + comments) / views) * 100 : 0;
-
-        // 좋아요/댓글 전환률 계산
-        const likeRate = views > 0 ? (likes / views) * 100 : 0;
-        const commentRate = views > 0 ? (comments / views) * 100 : 0;
-
+        // AI 분석 요청 (댓글 정보 포함)
         const response = await fetch('/api/video-insights', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             video: {
               title: video.title || '',
               description: video.description || '',
               tags: video.snippet?.tags || [],
-              publishedAt: video.publishedAt || '',
+              publishedAt: video.publishedAt,
+              duration: video.duration || '',
+              durationSeconds: videoDurationSeconds,
             },
             metrics: {
-              retentionRate: watchRetentionRate,
-              watchDuration: avgWatchDurationSeconds,
-              videoDuration: videoDurationSeconds,
-              engagement: engagement,
-              avgEngagement: avgEngagement,
-              views: views,
-              likes: likes,
-              comments: comments,
-              likeRate: likeRate,
-              commentRate: commentRate,
-              channelAvgViews: channelAvgViews,
+              views: parseInt(video.statistics?.viewCount || '0'),
+              likes: parseInt(video.statistics?.likeCount || '0'),
+              comments: parseInt(video.statistics?.commentCount || '0'),
+              likeRate: parseInt(video.statistics?.viewCount || '0') > 0 
+                ? (parseInt(video.statistics?.likeCount || '0') / parseInt(video.statistics?.viewCount || '0')) * 100 
+                : 0,
+              commentRate: parseInt(video.statistics?.viewCount || '0') > 0 
+                ? (parseInt(video.statistics?.commentCount || '0') / parseInt(video.statistics?.viewCount || '0')) * 100 
+                : 0,
             },
+            latestComment: comment ? {
+              text: comment.text,
+              author: comment.author,
+              publishedAt: comment.publishedAt,
+            } : null,
           }),
         });
 
         if (response.ok) {
           const data = await response.json();
-          setVideoInsights(data);
+          if (data.engagementAnalysis) {
+            setEngagementAnalysis(data.engagementAnalysis);
+          }
+          if (data.detailedAnalysis) {
+            setDetailedAnalysis(data.detailedAnalysis);
+          }
         } else {
-          console.error('비디오 인사이트 가져오기 실패:', response.statusText);
+          console.error('AI 분석 실패:', await response.text());
         }
       } catch (error) {
-        console.error('비디오 인사이트 가져오기 실패:', error);
+        console.error('댓글 가져오기 또는 AI 분석 실패:', error);
       } finally {
-        setIsLoadingInsights(false);
+        setIsLoadingComment(false);
       }
     };
 
-    if (videoAnalytics) {
-      fetchVideoInsights();
-    }
-  }, [videoAnalytics, video, videos]);
+    fetchCommentAndAnalysis();
+  }, [isConnected, channel, video.id, video.title, video.description, video.statistics, video.publishedAt, video.snippet?.tags]);
+
+  // 목 데이터 사용 - API 호출 제거됨
 
   // 제목 길이 계산
   const titleLength = video.title?.length || 0;
@@ -332,17 +238,11 @@ function VideoAnalysisDetail({ video, onBack }: { video: YouTubeVideo; onBack: (
     }
   };
 
-  const videoDurationSeconds = parseDurationToSeconds(video.duration || 'PT0S');
-  const avgWatchDurationSeconds = videoAnalytics?.averageViewDuration 
-    ? parseDurationToSeconds(videoAnalytics.averageViewDuration)
-    : 0;
-  const watchRetentionRate = videoDurationSeconds > 0 
-    ? Math.round((avgWatchDurationSeconds / videoDurationSeconds) * 100)
-    : 0;
-
-  // 좋아요/댓글 전환률 계산
-  const likeRate = views > 0 ? Math.round((likes / views) * 100) : 0;
-  const commentRate = views > 0 ? Math.round((comments / views) * 100) : 0;
+  // 목 데이터 사용
+  const avgWatchDurationSeconds = mockVideoAnalytics.averageViewDuration;
+  const watchRetentionRate = mockVideoAnalytics.averageViewPercentage;
+  const likeRate = 7.2; // 목 데이터
+  const commentRate = 1.0; // 목 데이터
 
   return (
     <div className="space-y-6">
@@ -384,23 +284,6 @@ function VideoAnalysisDetail({ video, onBack }: { video: YouTubeVideo; onBack: (
 
         {/* 오른쪽: 통계 카드들 */}
         <div className="flex flex-col gap-12 items-start">
-            {/* 구독자 증가량 */}
-            <div className="flex flex-col gap-2 items-start">
-              <div className="flex items-center gap-2">
-                <UserPlus className="w-[18px] h-[18px] text-[#ff8953]" />
-                <span className="text-base text-[#e2e2e4]">구독자 증가량</span>
-              </div>
-              <p className="text-2xl font-semibold text-[#e2e2e4] leading-[26px]">
-                {isLoadingAnalytics 
-                  ? '...' 
-                  : channelSubscribersGained === 0
-                  ? '0'
-                  : channelSubscribersGained > 0
-                  ? `+${channelSubscribersGained.toLocaleString()}`
-                  : `${channelSubscribersGained.toLocaleString()}`}
-              </p>
-            </div>
-
             {/* 총 좋아요 */}
             <div className="flex flex-col gap-2 items-start">
               <div className="flex items-center gap-2">
@@ -428,57 +311,40 @@ function VideoAnalysisDetail({ video, onBack }: { video: YouTubeVideo; onBack: (
       {/* 분석 섹션 */}
       <div className="space-y-12 pt-12">
         {/* 평균시청 지속률 */}
-        <div className="flex gap-4 items-center">
+        {/* <div className="flex gap-4 items-center">
           <div className="bg-[#1b1c25] border border-[#3a3b50] rounded-lg p-4 w-[201px] flex-shrink-0">
             <div className="flex items-center gap-2 mb-3">
               <TrendingUp className="w-6 h-6 text-[#ff8953]" />
               <span className="text-base text-[#e2e2e4]">평균시청 지속률</span>
             </div>
             <p className="text-2xl font-semibold text-[#e2e2e4] leading-[26px]">
-              {isLoadingAnalytics ? '...' : `${watchRetentionRate}%`}
+              {formatSecondsToTime(avgWatchDurationSeconds)}
             </p>
           </div>
           <div className="flex-1 flex gap-4 items-center ml-4">
-            {isLoadingInsights ? (
-              <p className="text-base text-[#e2e2e4] leading-[18px]">분석 중...</p>
-            ) : (
-              <p className="text-base text-[#e2e2e4] leading-[18px]">
-                "{videoInsights?.retentionAnalysis || (watchRetentionRate < 30
-                  ? `조회수 ${views.toLocaleString()}, 채널 조회수 대비로 시청 지속률이 ${watchRetentionRate}%로 낮아 초반 이탈이 심각합니다. 영상 도입부에 문제가 있을 수 있습니다.`
-                  : `조회수 ${views.toLocaleString()}, 채널 조회수 대비로 시청 지속률이 ${watchRetentionRate}%로 양호합니다.`)}"
-              </p>
-            )}
+            <p className="text-base text-[#e2e2e4] leading-[18px]">
+              "{mockVideoInsights.retentionAnalysis}"
+            </p>
           </div>
-        </div>
+        </div> */}
 
         {/* 좋아요/댓글 전환률 */}
         <div className="flex gap-4 items-center">
           <div className="bg-[#1b1c25] border border-[#3a3b50] rounded-lg p-4 w-[201px] flex-shrink-0">
             <div className="flex items-center gap-2 mb-3">
               <MessageCircle className="w-6 h-6 text-[#ff8953]" />
-              <span className="text-base text-[#e2e2e4]">좋아요 / 댓글 전환률</span>
+              <span className="text-base text-[#e2e2e4]">댓글</span>
             </div>
-            <div className="flex gap-4">
-              <p className="text-2xl font-semibold text-[#e2e2e4] leading-[26px]">
-                {likeRate}%
-              </p>
-              <p className="text-2xl font-semibold text-[#e2e2e4] leading-[26px]">
-                {commentRate}%
-              </p>
-            </div>
+            <p className="text-2xl font-semibold text-[#e2e2e4] leading-[26px]">
+              {comments.toLocaleString()}
+            </p>
           </div>
           <div className="flex-1 flex gap-4 items-center ml-4">
-            {isLoadingInsights ? (
-              <p className="text-base text-[#e2e2e4] leading-[18px]">분석 중...</p>
+            {isLoadingComment ? (
+              <div className="h-4 w-full bg-[#3a3b50]/50 rounded animate-pulse" />
             ) : (
               <p className="text-base text-[#e2e2e4] leading-[18px]">
-                "{videoInsights?.engagementAnalysis || (likeRate < 5 && commentRate < 2 
-                  ? `조회수 ${views.toLocaleString()}, 좋아요 ${likes.toLocaleString()}, 댓글 ${comments.toLocaleString()}, 채널 조회수 대비로 좋아요와 댓글 수가 모두 적어 시청자 참여도가 저조합니다.`
-                  : likeRate < 5
-                  ? `조회수 ${views.toLocaleString()}, 좋아요 ${likes.toLocaleString()}, 댓글 ${comments.toLocaleString()}, 채널 조회수 대비로 좋아요 수가 적어 시청자들의 공감을 얻지 못하고 있습니다.`
-                  : commentRate < 2
-                  ? `조회수 ${views.toLocaleString()}, 좋아요 ${likes.toLocaleString()}, 댓글 ${comments.toLocaleString()}, 채널 조회수 대비로 댓글 수가 적어 댓글 유도가 필요합니다.`
-                  : `조회수 ${views.toLocaleString()}, 좋아요 ${likes.toLocaleString()}, 댓글 ${comments.toLocaleString()}, 채널 조회수 대비로 좋아요와 댓글 수가 양호합니다.`)}"
+                "{engagementAnalysis || '댓글 분석 중입니다.'}"
               </p>
             )}
           </div>
@@ -486,21 +352,14 @@ function VideoAnalysisDetail({ video, onBack }: { video: YouTubeVideo; onBack: (
 
         {/* 상세 분석 */}
         <div className="bg-[#1b1c25] border border-[#3a3b50] rounded-lg p-4 mt-4">
-          {isLoadingInsights ? (
-            <p className="text-base text-[#e2e2e4] leading-[18px]">분석 중...</p>
-          ) : videoInsights && videoInsights.causes && videoInsights.causes.length > 0 ? (
-            <div className="space-y-3">
-              {videoInsights.causes.map((cause, index) => (
-                <p key={index} className="text-base text-[#e2e2e4] leading-[18px]">
-                  {cause}
-                </p>
-              ))}
+          {isLoadingComment ? (
+            <div className="space-y-2">
+              <div className="h-4 w-full bg-[#3a3b50]/50 rounded animate-pulse" />
+              <div className="h-4 w-4/5 bg-[#3a3b50]/50 rounded animate-pulse" />
             </div>
           ) : (
             <p className="text-base text-[#e2e2e4] leading-[18px]">
-              {watchRetentionRate < 30 
-                ? `평균 시청 시간(${formatSecondsToTime(avgWatchDurationSeconds)})이 영상 길이(${formatSecondsToTime(videoDurationSeconds)}) 대비 너무 짧습니다. 시청 지속률이 ${watchRetentionRate}%로 낮아 초반 이탈이 심각합니다. 영상 도입부를 개선하고 핵심 내용을 앞쪽에 배치하는 것을 고려해보세요.`
-                : `전반적인 시청 지속률(${watchRetentionRate}%)이 양호합니다. 평균 시청 시간은 ${formatSecondsToTime(avgWatchDurationSeconds)}입니다. 더 나은 성과를 위해 제목과 썸네일을 개선해보세요.`}
+              {detailedAnalysis || '영상 분석 중입니다.'}
             </p>
           )}
         </div>

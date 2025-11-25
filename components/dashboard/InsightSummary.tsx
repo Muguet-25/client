@@ -23,7 +23,7 @@ const FALLBACK_INSIGHTS = {
   ]
 };
 
-export default function InsightSummary({
+export default function InsightSummary({ 
   insightsData,
   isLoading = false,
   channelId
@@ -130,32 +130,32 @@ export default function InsightSummary({
         <div className="space-y-3">
           <h3 className="text-2xl font-semibold tracking-tight">오늘의 한 줄 진단</h3>
           {displayLoading ? (
-            <div className="space-y-2">
+              <div className="space-y-2">
               <div className="h-4 w-full animate-pulse rounded bg-[#3a3b50]/60" />
               <div className="h-4 w-4/5 animate-pulse rounded bg-[#3a3b50]/60" />
-            </div>
-          ) : (
+              </div>
+            ) : (
             <p className="text-base leading-relaxed text-[#f5f5f5]">{diagnosis}</p>
-          )}
-        </div>
+            )}
+      </div>
 
         <div className="space-y-3">
           <h3 className="text-2xl font-semibold tracking-tight">이번 주 목표</h3>
           {displayLoading ? (
-            <div className="space-y-2">
+              <div className="space-y-2">
               <div className="h-4 w-full animate-pulse rounded bg-[#3a3b50]/60" />
               <div className="h-4 w-3/4 animate-pulse rounded bg-[#3a3b50]/60" />
-            </div>
-          ) : (
+              </div>
+            ) : (
             <p className="text-base leading-relaxed text-[#f5f5f5]">{weeklyGoal}</p>
-          )}
-        </div>
+            )}
+          </div>
 
         <div className="flex items-center gap-4 text-sm text-white/60">
           <span className="h-px flex-1 bg-white/30" />
           추천
           <span className="h-px flex-1 bg-white/30" />
-        </div>
+      </div>
 
         <div className="space-y-4">
           <h3 className="text-2xl font-semibold tracking-tight">목표 달성을 위한 액션</h3>
@@ -168,10 +168,10 @@ export default function InsightSummary({
                     className="h-4 flex-1 animate-pulse rounded bg-[#3a3b50]/60"
                     style={{ width: `${90 - index * 5}%` }}
                   />
-                </li>
-              ))}
-            </ul>
-          ) : (
+                  </li>
+                ))}
+              </ul>
+            ) : (
             <ul className="space-y-3">
               {actions.map((action) => (
                 <li
@@ -180,10 +180,10 @@ export default function InsightSummary({
                 >
                   <CheckCircle2 className="mt-0.5 h-5 w-5 text-[#ff8953]" aria-hidden="true" />
                   <span className="flex-1">{action}</span>
-                </li>
-              ))}
-            </ul>
-          )}
+                  </li>
+                ))}
+              </ul>
+            )}
           {fallbackError && (
             <p className="text-sm text-red-400">
               {fallbackError}

@@ -271,10 +271,35 @@ export class YouTubeAPI {
   }
 
   private async makeRequest<T>(url: string, params: Record<string, string> = {}): Promise<T> {
-    const searchParams = new URLSearchParams(params);
+    // ids 파라미터는 특별 처리: video==VIDEO_ID 형태에서 ==는 인코딩하지 않음
+    const { ids, ...otherParams } = params;
+    const searchParams = new URLSearchParams(otherParams);
+    
+    // ids가 있으면 쿼리 문자열에 직접 추가 (==는 그대로 유지)
+    // URLSearchParams는 ==를 %3D%3D로 인코딩하므로 수동으로 처리
+    const queryString = searchParams.toString();
+    
+    // ids에 ==가 포함되어 있으면 encodeURIComponent가 ==를 %3D%3D로 인코딩하는데,
+    // YouTube Analytics API는 video==VIDEO_ID 형태를 기대하므로 ==는 그대로 두어야 함
+    // 따라서 ids를 직접 처리: video==VIDEO_ID에서 videoId만 인코딩
+    let finalQuery = queryString;
+    if (ids) {
+      // video==VIDEO_ID 형태에서 VIDEO_ID 부분만 인코딩
+      const idsMatch = ids.match(/^(video==)(.+)$/);
+      if (idsMatch) {
+        const prefix = idsMatch[1]; // "video=="
+        const videoId = idsMatch[2]; // VIDEO_ID
+        // videoId에 특수 문자가 있을 수 있으므로 인코딩 (일반적으로는 필요 없지만 안전을 위해)
+        const encodedVideoId = encodeURIComponent(videoId);
+        finalQuery = `${queryString ? queryString + '&' : ''}ids=${prefix}${encodedVideoId}`;
+      } else {
+        // 매칭되지 않으면 그냥 인코딩
+        finalQuery = `${queryString ? queryString + '&' : ''}ids=${encodeURIComponent(ids)}`;
+      }
+    }
 
     try {
-      const response = await fetch(`${url}?${searchParams}`, {
+      const response = await fetch(`${url}?${finalQuery}`, {
         headers: {
           'Authorization': `Bearer ${this.accessToken}`,
           'Accept': 'application/json',
@@ -287,7 +312,7 @@ export class YouTubeAPI {
             // 토큰이 만료된 경우 갱신 시도
             await this.refreshToken();
             // 갱신된 토큰으로 재시도
-            const retryResponse = await fetch(`${url}?${searchParams}`, {
+            const retryResponse = await fetch(`${url}?${finalQuery}`, {
               headers: {
                 'Authorization': `Bearer ${this.accessToken}`,
                 'Accept': 'application/json',
@@ -746,7 +771,7 @@ export class YouTubeAPI {
         return {
           views: 0,
           estimatedMinutesWatched: 0,
-          averageViewDuration: '0:00',
+          averageViewDuration: 0,
           subscribersGained: 0,
           subscribersLost: 0,
           likes: 0,
@@ -765,7 +790,7 @@ export class YouTubeAPI {
       const analyticsData = {
         views: row[0] || 0,
         estimatedMinutesWatched: row[1] || 0,
-        averageViewDuration: this.formatDuration(row[2] || 0),
+        averageViewDuration: row[2] || 0, // 초 단위로 반환
         subscribersGained: row[3] || 0,
         subscribersLost: row[4] || 0,
         likes: row[5] || 0,
@@ -809,7 +834,7 @@ export class YouTubeAPI {
       return {
         views: 0,
         estimatedMinutesWatched: 0,
-        averageViewDuration: '0:00',
+        averageViewDuration: 0,
         subscribersGained: 0,
         subscribersLost: 0,
         likes: 0,
@@ -950,18 +975,29 @@ export class YouTubeAPI {
         ids: `video==${videoId}`,
         startDate,
         endDate,
-        metrics: 'views,estimatedMinutesWatched,averageViewDuration,likes,dislikes,comments,shares,estimatedRevenue',
+        metrics: 'views,estimatedMinutesWatched,averageViewDuration,averageViewPercentage,likes,dislikes,comments,shares,estimatedRevenue',
       };
+
+      console.log('YouTube Analytics API 요청 파라미터:', {
+        videoId,
+        startDate,
+        endDate,
+        params
+      });
 
       const response = await this.makeRequest<{
         rows: number[][];
+        columnHeaders?: Array<{ name: string; dataType: string }>;
       }>(`${YOUTUBE_ANALYTICS_API_BASE}/reports`, params);
+      
+      console.log('YouTube Analytics API columnHeaders:', response.columnHeaders);
 
       if (!response.rows || response.rows.length === 0) {
         return {
           views: 0,
           estimatedMinutesWatched: 0,
-          averageViewDuration: '0:00',
+          averageViewDuration: 0,
+          averageViewPercentage: 0,
           subscribersGained: 0,
           subscribersLost: 0,
           likes: 0,
@@ -977,23 +1013,27 @@ export class YouTubeAPI {
       }
 
       const row = response.rows[0];
+      console.log('YouTube Analytics API 응답 row:', row);
+      console.log('averageViewDuration (row[2]):', row[2]);
       // impressions 메트릭이 없으므로 ctr은 0으로 설정
       const analyticsData = {
         views: row[0] || 0,
         estimatedMinutesWatched: row[1] || 0,
-        averageViewDuration: this.formatDuration(row[2] || 0),
+        averageViewDuration: row[2] || 0, // 초 단위로 반환
+        averageViewPercentage: row[3] || 0, // 백분율로 반환됨
         subscribersGained: 0,
         subscribersLost: 0,
-        likes: row[3] || 0,
-        dislikes: row[4] || 0,
-        comments: row[5] || 0,
-        shares: row[6] || 0,
-        estimatedRevenue: row[7] || 0,
+        likes: row[4] || 0,
+        dislikes: row[5] || 0,
+        comments: row[6] || 0,
+        shares: row[7] || 0,
+        estimatedRevenue: row[8] || 0,
         cpm: 0,
         ctr: 0, // 비디오 레벨에서는 impressions 데이터가 없어 ctr 계산 불가
         impressions: 0,
         impressionsClickable: 0,
       };
+      console.log('파싱된 analyticsData:', analyticsData);
 
       // 캐시에 저장
       this.setCache(cacheKey, analyticsData);
@@ -1004,6 +1044,16 @@ export class YouTubeAPI {
       const errorMessage = error?.message || '';
       const statusCode = error?.statusCode;
       
+      console.error('getVideoAnalytics 에러 상세:', {
+        videoId,
+        startDate,
+        endDate,
+        statusCode,
+        errorMessage,
+        error: error?.toString(),
+        stack: error?.stack
+      });
+      
       // 403 Forbidden 또는 500 Internal Server Error 시 만료된 캐시 사용 시도
       if (error?.isQuotaExceeded || 
           statusCode === 403 || 
@@ -1011,22 +1061,27 @@ export class YouTubeAPI {
           errorMessage.includes('Forbidden') || 
           errorMessage.includes('internal error') ||
           errorMessage.includes('Unknown identifier')) {
+        console.log('캐시에서 데이터 로드 시도 중...');
         // 캐시에서 데이터 로드 시도 (성공 시에만 로그)
         const expiredCache = this.getFromCache<YouTubeAnalytics>(cacheKey, this.CACHE_DURATION, true);
         if (expiredCache) {
+          console.log('만료된 캐시에서 데이터 로드 성공:', expiredCache);
           return expiredCache;
         }
         const persistentCache = this.getFromPersistentCache<YouTubeAnalytics>(cacheKey, true);
         if (persistentCache) {
+          console.log('영구 캐시에서 데이터 로드 성공:', persistentCache);
           return persistentCache;
         }
+        console.warn('캐시에 데이터가 없습니다. 기본값 반환.');
       }
       
       // 캐시도 없으면 기본값 반환 (조용히 처리)
       return {
         views: 0,
         estimatedMinutesWatched: 0,
-        averageViewDuration: '0:00',
+        averageViewDuration: 0, // 초 단위
+        averageViewPercentage: 0,
         subscribersGained: 0,
         subscribersLost: 0,
         likes: 0,
@@ -1061,7 +1116,8 @@ export class YouTubeAPI {
         result.set(videoId, {
           views: 0,
           estimatedMinutesWatched: 0,
-          averageViewDuration: '0:00',
+          averageViewDuration: 0, // 초 단위
+          averageViewPercentage: 0,
           subscribersGained: 0,
           subscribersLost: 0,
           likes: 0,
@@ -1156,5 +1212,48 @@ export class YouTubeAPI {
       return `${hours}:${minutes.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
     }
     return `${minutes}:${secs.toString().padStart(2, '0')}`;
+  }
+
+  // 비디오의 최신 댓글 1개 가져오기
+  async getLatestComment(videoId: string): Promise<{ text: string; author: string; publishedAt: string } | null> {
+    try {
+      const response = await this.makeRequest<{
+        items: Array<{
+          snippet: {
+            topLevelComment: {
+              snippet: {
+                textDisplay: string;
+                authorDisplayName: string;
+                publishedAt: string;
+              };
+            };
+          };
+        }>;
+      }>(`${YOUTUBE_API_BASE}/commentThreads`, {
+        part: 'snippet',
+        videoId,
+        maxResults: '10',
+        order: 'time', // 최신순
+        textFormat: 'plainText',
+      });
+
+      if (!response.items || response.items.length === 0) {
+        return null;
+      }
+
+      const comment = response.items[0].snippet.topLevelComment.snippet;
+      return {
+        text: comment.textDisplay,
+        author: comment.authorDisplayName,
+        publishedAt: comment.publishedAt,
+      };
+    } catch (error: any) {
+      // 댓글이 비활성화되었거나 가져올 수 없는 경우
+      if (error?.isQuotaExceeded) {
+        throw error;
+      }
+      console.warn('댓글을 가져올 수 없습니다:', error);
+      return null;
+    }
   }
 }

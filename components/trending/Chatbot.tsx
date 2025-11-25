@@ -279,7 +279,7 @@ export default function Chatbot() {
             {/* 메인 타이틀 */}
             <div className="mb-12">
               <h1 className="text-3xl md:text-4xl font-bold text-center bg-gradient-to-r from-[#ff8953] via-[#ffb05b] to-[#ffd700] bg-clip-text text-transparent mb-3">
-                내 채널 전용 AI 코치
+                AI한테 무엇이든 물어보세요!
               </h1>
               <p className="text-[#aaaaaa] text-center text-base">
                 채널 데이터를 분석해 오늘 바로 실행할 수 있는 조언을 드립니다

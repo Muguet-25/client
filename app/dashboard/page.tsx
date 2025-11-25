@@ -38,7 +38,7 @@ export default function Dashboard() {
   // 중앙화된 데이터 상태
   const [channelAnalytics, setChannelAnalytics] = useState<YouTubeAnalytics | null>(null);
   const [ageGroupData, setAgeGroupData] = useState<YouTubeAgeGroupData[]>([]);
-  const [videoAnalyticsMap, setVideoAnalyticsMap] = useState<Map<string, { averageViewDuration: string }>>(new Map());
+  const [videoAnalyticsMap, setVideoAnalyticsMap] = useState<Map<string, { averageViewDuration: number | string }>>(new Map());
   const [insightsData, setInsightsData] = useState<{ diagnosis: string; weeklyGoal: string; actions: string[] } | null>(null);
   const [isLoadingAnalytics, setIsLoadingAnalytics] = useState(false);
   const [hasLoadedAnalytics, setHasLoadedAnalytics] = useState(false);
@@ -105,7 +105,7 @@ export default function Dashboard() {
         })
         .slice(0, 3);
       
-      const analyticsMap = new Map<string, { averageViewDuration: string }>();
+      const analyticsMap = new Map<string, { averageViewDuration: number }>();
       
       for (const video of top3Videos) {
         try {
@@ -184,10 +184,14 @@ export default function Dashboard() {
 
       // 캐시된 데이터를 준비 (할당량 초과 시 사용)
       // Map을 일반 객체로 변환 (JSON 직렬화를 위해)
-      const videoAnalyticsObj: Record<string, { averageViewDuration: string }> = {};
+      const videoAnalyticsObj: Record<string, { averageViewDuration: number }> = {};
       if (dataToUse.videoAnalyticsMap) {
         dataToUse.videoAnalyticsMap.forEach((value, key) => {
-          videoAnalyticsObj[key] = value;
+          const avgDuration =
+            typeof value.averageViewDuration === 'number'
+              ? value.averageViewDuration
+              : parseFloat(value.averageViewDuration) || 0;
+          videoAnalyticsObj[key] = { averageViewDuration: avgDuration };
         });
       }
 

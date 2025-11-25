@@ -127,13 +127,13 @@ export async function POST(request: NextRequest) {
 - 총 영상 수: ${ch.statistics?.videoCount || 0}개
 ${analyticsData ? `
 - 최근 30일 조회수: ${analyticsData.views?.toLocaleString() || 0}
-- 최근 30일 평균 시청 지속시간: ${analyticsData.averageViewDuration || '0:00'}
+- 최근 30일 평균 시청 지속시간: ${analyticsData.averageViewDuration ? `${Math.floor(analyticsData.averageViewDuration / 60)}분 ${analyticsData.averageViewDuration % 60}초` : '0초'}
 - 최근 30일 구독자 증가: ${analyticsData.subscribersGained || 0}명` : ''}
 
 최근 영상 ${vs.length}개:
 ${vs
   .map(
-    (v, i) => `
+    (v: { title?: string; statistics?: { viewCount?: string; likeCount?: string }; publishedAt?: string }, i: number) => `
 ${i + 1}. ${v.title || '제목 없음'}
    - 조회수: ${parseInt(
      v.statistics?.viewCount || '0'
@@ -180,9 +180,7 @@ ${i + 1}. ${v.title || '제목 없음'}
             ).toLocaleString()}명
 - 총 영상 수: ${channel.statistics.videoCount}개
 - 최근 30일 조회수: ${analytics.views.toLocaleString()}
-- 최근 30일 평균 시청 지속시간: ${
-              analytics.averageViewDuration
-            }
+- 최근 30일 평균 시청 지속시간: ${analytics.averageViewDuration ? `${Math.floor(analytics.averageViewDuration / 60)}분 ${analytics.averageViewDuration % 60}초` : '0초'}
 - 최근 30일 구독자 증가: ${analytics.subscribersGained}명
 
 최근 영상 5개:

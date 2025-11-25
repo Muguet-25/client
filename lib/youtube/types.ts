@@ -55,7 +55,8 @@ export interface YouTubeVideo {
 export interface YouTubeAnalytics {
   views: number;
   estimatedMinutesWatched: number;
-  averageViewDuration: string;
+  averageViewDuration: number; // 평균 시청 시간 (초 단위)
+  averageViewPercentage?: number; // 평균 시청 비율 (백분율)
   subscribersGained: number;
   subscribersLost: number;
   likes: number;

@@ -24,6 +24,8 @@ export async function POST(request: NextRequest) {
       description = '',
       tags = [],
       publishedAt = '',
+      duration = '',
+      durationSeconds = 0,
     } = video;
 
     const {
@@ -40,11 +42,14 @@ export async function POST(request: NextRequest) {
       channelAvgViews = 0,
     } = metrics;
 
+    const { latestComment } = body;
+
     const prompt = `
 영상 제목: ${title}
 설명: ${description}
 태그: ${tags.join(', ')}
 업로드일: ${publishedAt}
+영상 길이: ${durationSeconds}초 (${duration})
 
 주요 지표:
 - 평균 시청 지속시간 대비 영상 길이 비율: ${retentionRate.toFixed(1)}%
@@ -56,6 +61,12 @@ export async function POST(request: NextRequest) {
 - 댓글: ${comments.toLocaleString()}
 - 좋아요 전환률: ${likeRate.toFixed(2)}%
 - 댓글 전환률: ${commentRate.toFixed(2)}%
+${latestComment ? `
+최신 댓글:
+- 작성자: ${latestComment.author}
+- 내용: ${latestComment.text}
+- 작성일: ${latestComment.publishedAt}
+` : ''}
 
 위 데이터를 기반으로 JSON 형태로 분석 결과를 작성하세요:
 {
@@ -71,13 +82,15 @@ export async function POST(request: NextRequest) {
     "문제 원인 2"
   ],
   "retentionAnalysis": "시청 지속률에 대한 1문장 분석. 반드시 '조회수 ${views.toLocaleString()}, 채널 조회수 대비로 ~~' 형식으로 시작하며, 실제 시청 지속률(${retentionRate.toFixed(1)}%)을 언급하고 채널 평균과 비교한 평가를 제시하세요.",
-  "engagementAnalysis": "좋아요와 댓글에 대한 통합 1문장 분석. 반드시 '조회수 ${views.toLocaleString()}, 좋아요 ${likes.toLocaleString()}, 댓글 ${comments.toLocaleString()}, 채널 조회수 대비로 ~~' 형식으로 시작하며, 실제 수치를 언급하고 채널 평균과 비교한 평가를 제시하세요."
+  "engagementAnalysis": "좋아요와 댓글에 대한 통합 1문장 분석. 반드시 '조회수 ${views.toLocaleString()}, 좋아요 ${likes.toLocaleString()}, 댓글 ${comments.toLocaleString()}, 채널 조회수 대비로 ~~' 형식으로 시작하며, 실제 수치를 언급하고 채널 평균과 비교한 평가를 제시하세요.",
+  "detailedAnalysis": "영상 제목, 설명, 영상 길이, 조회수, 좋아요, 댓글만을 기반으로 한 종합적인 평가 및 분석입니다. 이 정보들만을 바탕으로 영상의 전반적인 성과를 평가하고, 강점과 개선점을 구체적으로 제시하세요. 2-3문장으로 작성하며, 반드시 '~~~ 분석입니다.' 형식으로 끝나야 합니다."
 }
 
 - 최소 2개의 issue를 제시하고, 각 severity는 high/medium/low 중 하나로만 설정하세요.
 - causes는 2~3개 문장으로, 실행 가능한 원인 분석만 작성하세요.
 - retentionAnalysis는 1문장으로 작성하세요. 반드시 "조회수 ${views.toLocaleString()}, 채널 조회수 대비로 ~~" 형식으로 시작하며, 시청 지속률(${retentionRate.toFixed(1)}%)을 언급하고 채널 평균과 비교한 평가를 제시하세요.
-- engagementAnalysis는 1문장으로 작성하세요. 반드시 "조회수 ${views.toLocaleString()}, 좋아요 ${likes.toLocaleString()}, 댓글 ${comments.toLocaleString()}, 채널 조회수 대비로 ~~" 형식으로 시작하며, 좋아요 수와 댓글 수를 언급하고, 채널 평균 참여도(${avgEngagement.toFixed(2)}%)와 비교한 평가를 제시하세요. "전환률"이라는 단어는 사용하지 마세요. 예: "조회수 ${views.toLocaleString()}, 좋아요 ${likes.toLocaleString()}, 댓글 ${comments.toLocaleString()}, 채널 조회수 대비로 좋아요 수가 적어 시청자들의 공감을 얻지 못하고 있습니다."
+- engagementAnalysis는 1문장으로 작성하세요. 반드시 "조회수 ${views.toLocaleString()}, 좋아요 ${likes.toLocaleString()}, 댓글 ${comments.toLocaleString()}, 채널 조회수 대비로 ~~" 형식으로 시작하며, 좋아요 수와 댓글 수를 언급하고, 채널 평균 참여도(${avgEngagement.toFixed(2)}%)와 비교한 평가를 제시하세요. ${latestComment ? `또한 최신 댓글 내용("${latestComment.text}")을 분석하여 댓글이 긍정적인지 부정적인지, 시청자들의 반응이 어떤지 간단히 언급하세요. 예: "조회수 ${views.toLocaleString()}, 좋아요 ${likes.toLocaleString()}, 댓글 ${comments.toLocaleString()}, 채널 조회수 대비로 참여도가 양호하며, 최신 댓글에서 긍정적인 반응이 보입니다." 또는 "조회수 ${views.toLocaleString()}, 좋아요 ${likes.toLocaleString()}, 댓글 ${comments.toLocaleString()}, 채널 조회수 대비로 참여도가 낮고, 최신 댓글에서 개선이 필요한 부분이 언급되고 있습니다."` : ''} "전환률"이라는 단어는 사용하지 마세요.
+- detailedAnalysis는 영상 제목, 설명, 영상 길이(${durationSeconds}초), 조회수(${views.toLocaleString()}), 좋아요(${likes.toLocaleString()}), 댓글(${comments.toLocaleString()})${latestComment ? `, 최신 댓글("${latestComment.text}")` : ''}만을 기반으로 한 종합적인 평가입니다. 이 정보들만을 바탕으로 영상의 전반적인 성과를 평가하고, 강점과 개선점을 구체적으로 제시하세요. 2-3문장으로 작성하며, 반드시 '~~~ 분석입니다.' 형식으로 끝나야 합니다. 다른 지표(시청 지속률, 참여도 등)는 사용하지 마세요.
 - JSON 외의 텍스트, 마크다운, 설명은 출력하지 마세요.
 `;
 
@@ -118,6 +131,7 @@ export async function POST(request: NextRequest) {
       causes: insights.causes || [],
       retentionAnalysis: insights.retentionAnalysis || '',
       engagementAnalysis: insights.engagementAnalysis || '',
+      detailedAnalysis: insights.detailedAnalysis || '',
     });
   } catch (error) {
     console.error('영상 AI 인사이트 생성 실패:', error);
