@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useAuthStore } from '@/lib/useAuthStore';
 import { useYouTube } from '@/hooks/useYouTube';
+import ReactMarkdown from 'react-markdown';
 
 interface Message {
   id: string;
@@ -398,9 +399,40 @@ export default function Chatbot() {
                         : 'text-[#f5f5f5]'
                       }`}
                   >
-                    <div className="whitespace-pre-wrap text-[15px] leading-relaxed">
-                      {message.content}
-                    </div>
+                    {message.role === 'assistant' ? (
+                      <div className="text-[15px] leading-relaxed prose prose-invert prose-sm max-w-none">
+                        <ReactMarkdown
+                          components={{
+                            p: ({ children }) => <p className="mb-2 last:mb-0">{children}</p>,
+                            ul: ({ children }) => <ul className="list-disc list-inside mb-2 space-y-1">{children}</ul>,
+                            ol: ({ children }) => <ol className="list-decimal list-inside mb-2 space-y-1">{children}</ol>,
+                            li: ({ children }) => <li className="ml-2">{children}</li>,
+                            code: ({ children, className }) => {
+                              const isInline = !className;
+                              return isInline ? (
+                                <code className="bg-[#3a3b50] px-1.5 py-0.5 rounded text-sm">{children}</code>
+                              ) : (
+                                <code className="block bg-[#3a3b50] p-2 rounded text-sm overflow-x-auto">{children}</code>
+                              );
+                            },
+                            pre: ({ children }) => <pre className="bg-[#3a3b50] p-2 rounded text-sm overflow-x-auto mb-2">{children}</pre>,
+                            strong: ({ children }) => <strong className="font-semibold">{children}</strong>,
+                            em: ({ children }) => <em className="italic">{children}</em>,
+                            h1: ({ children }) => <h1 className="text-xl font-bold mb-2">{children}</h1>,
+                            h2: ({ children }) => <h2 className="text-lg font-bold mb-2">{children}</h2>,
+                            h3: ({ children }) => <h3 className="text-base font-bold mb-2">{children}</h3>,
+                            blockquote: ({ children }) => <blockquote className="border-l-4 border-[#ff8953] pl-4 italic mb-2">{children}</blockquote>,
+                            a: ({ children, href }) => <a href={href} className="text-[#ff8953] underline" target="_blank" rel="noopener noreferrer">{children}</a>,
+                          }}
+                        >
+                          {message.content}
+                        </ReactMarkdown>
+                      </div>
+                    ) : (
+                      <div className="whitespace-pre-wrap text-[15px] leading-relaxed">
+                        {message.content}
+                      </div>
+                    )}
                   </div>
                 </div>
               ))}
