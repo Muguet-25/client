@@ -6,7 +6,7 @@ import { supabase } from '@/utils/config';
 import { useAuthStore } from '@/lib/useAuthStore';
 
 interface CalendarEvent {
-  id: string;
+  id: string
   title: string;
   date: Date;
   thumbnail?: string;
